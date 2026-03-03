@@ -35,7 +35,8 @@ const supabase: SupabaseClient<Database> = createClient<Database>(
   SUPABASE_SERVICE_ROLE_KEY
 );
 
-const PORT = Number.parseInt(process.env.WS_PORT ?? '3001', 10);
+// Railway injects PORT; fall back to WS_PORT or 3001 for local dev
+const PORT = Number.parseInt(process.env.PORT ?? process.env.WS_PORT ?? '3001', 10);
 
 // Create HTTP server for WebSocket
 const server = createServer();
@@ -195,9 +196,9 @@ server.on('request', (req, res) => {
   res.end();
 });
 
-server.listen(PORT, () => {
-  console.log(`🎮 CCWG WebSocket server running on ws://localhost:${PORT}`);
-  console.log(`📊 Health check available at http://localhost:${PORT}/health`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🎮 CCWG WebSocket server running on 0.0.0.0:${PORT}`);
+  console.log(`📊 Health check available at http://0.0.0.0:${PORT}/health`);
 });
 
 // Graceful shutdown
