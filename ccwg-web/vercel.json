@@ -9,15 +9,5 @@
       "path": "/api/cron/events/maintenance",
       "schedule": "0 0 * * *"
     }
-  ],
-  "functions": {
-    "api/**/*.ts": {
-      "memory": 1024,
-      "maxDuration": 10
-    },
-    "api/cron/**/*.ts": {
-      "memory": 1024,
-      "maxDuration": 60
-    }
-  }
+  ]
 }
