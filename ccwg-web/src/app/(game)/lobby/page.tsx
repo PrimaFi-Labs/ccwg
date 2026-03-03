@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useAccount } from '@starknet-react/core';
 import { CallData, cairo } from 'starknet';
 import { ConnectWallet } from '@/src/components/auth/ConnectWallet';
@@ -314,6 +314,14 @@ const NoticeFeed = ({
 );
 
 export default function LobbyPage() {
+  return (
+    <Suspense fallback={null}>
+      <LobbyContent />
+    </Suspense>
+  );
+}
+
+function LobbyContent() {
   const { address, account, isConnected } = useAccount();
   const router = useRouter();
   const searchParams = useSearchParams();
