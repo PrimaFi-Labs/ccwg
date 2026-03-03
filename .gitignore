@@ -28,6 +28,7 @@ ccwg-web/npm-debug.log*
 ccwg-web/yarn-debug.log*
 ccwg-web/yarn-error.log*
 ccwg-web/.pnpm-debug.log*
+ccwg-web/pnpm-lock.yaml
 
 # contracts dependencies and generated output
 contracts/node_modules/
@@ -71,3 +72,5 @@ ccwg-web/*supabase
 
 # Convo files
 progress.md
+.vercel
+.env*.local
