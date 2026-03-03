@@ -1,0 +1,24 @@
+# Ignore everything not needed for the server container
+node_modules
+.git
+
+# Web app source (only its package.json is needed for workspace resolution)
+ccwg-web/src
+ccwg-web/public
+ccwg-web/supabase
+ccwg-web/.next
+ccwg-web/node_modules
+
+# Contracts (not used at runtime)
+contracts
+
+# Docs
+*.md
+!packages/shared/**
+
+# IDE / OS
+.vscode
+.idea
+*.swp
+.DS_Store
+Thumbs.db
