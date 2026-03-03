@@ -14,15 +14,15 @@ const mask = (value?: string, showStart = 6, showEnd = 4) => {
   return `${value.slice(0, showStart)}...${value.slice(-showEnd)}`;
 };
 
-// ✅ Only logs in development (keeps prod logs clean)
+// ✅ Only logs in development with DEBUG_SUPABASE=true
 const logSupabaseEnv = (label: string) => {
-  if (process.env.NODE_ENV !== 'development') return;
+  if (process.env.NODE_ENV !== 'development' || !process.env.DEBUG_SUPABASE) return;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  console.log(`[supabase][${label}] NEXT_PUBLIC_SUPABASE_URL:`, url ?? '(missing)');
+  console.log(`[supabase][${label}] NEXT_PUBLIC_SUPABASE_URL:`, url ? '✅ set' : '❌ missing');
   console.log(`[supabase][${label}] NEXT_PUBLIC_SUPABASE_ANON_KEY:`, mask(anon));
   console.log(`[supabase][${label}] SUPABASE_SERVICE_ROLE_KEY:`, mask(service));
 };

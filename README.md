@@ -401,10 +401,9 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) file for
 
 ## 🔗 Links
 
-- **Website:** https://ccwg.games
+- **Website:** https://ccwg.primafi.xyz
 - **Starknet:** https://starknet.io
-- **Discord:** [Join Community]()
-- **Twitter:** [@CCWGGames]()
+- **Twitter:** [@cryptocardwarx]()
 - **Docs:** [Full Technical Docs](.)
 
 ---

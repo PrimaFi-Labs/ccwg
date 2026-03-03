@@ -33,6 +33,10 @@ ccwg-web/.pnpm-debug.log*
 # contracts dependencies and generated output
 contracts/node_modules/
 contracts/target/
+contracts/manifest_dev.json
+contracts/manifest_sepolia.json
+contracts/manifests/
+contracts/test/scripts/
 
 # contracts local secrets and local-only config
 contracts/.env
@@ -62,9 +66,9 @@ ccwg-server/.env.*
 # shared package build output
 packages/shared/dist/
 
-# Root workspace
-pnpm-lock.yaml
-
 # Database impt files
 ccwg-web/supabase/*.temp
 ccwg-web/*supabase
+
+# Convo files
+progress.md

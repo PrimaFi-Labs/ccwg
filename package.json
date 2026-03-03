@@ -1,6 +1,7 @@
 {
   "name": "ccwg",
   "private": true,
+  "packageManager": "pnpm@10.28.2",
   "scripts": {
     "dev": "pnpm --filter ccwg-web dev & pnpm --filter ccwg-server dev",
     "dev:web": "pnpm --filter ccwg-web dev",
