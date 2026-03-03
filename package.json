@@ -1,0 +1,11 @@
+{
+  "name": "ccwg",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter ccwg-web dev & pnpm --filter ccwg-server dev",
+    "dev:web": "pnpm --filter ccwg-web dev",
+    "dev:server": "pnpm --filter ccwg-server dev",
+    "build:web": "pnpm --filter ccwg-web build",
+    "typecheck:server": "pnpm --filter ccwg-server typecheck"
+  }
+}

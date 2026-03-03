@@ -1,0 +1,548 @@
+@import "tailwindcss";
+
+/* ============================================================
+   CCWG GLOBAL THEME SYSTEM
+   Three themes: dark (default/Starknet), light, military
+   Switched via [data-theme] on <html> element
+   ============================================================ */
+
+/* ----- DARK THEME (Starknet – default) ----- */
+:root,
+[data-theme="dark"] {
+  --bg-primary:      #090d1a;
+  --bg-secondary:    #0f1629;
+  --bg-tertiary:     #161f35;
+  --bg-panel:        #111827;
+  --bg-card:         #1a2540;
+  --bg-input:        #0f1629;
+
+  --overlay-purple:  rgba(88, 28, 135, 0.10);
+  --overlay-cyan:    rgba(6, 214, 160, 0.04);
+
+  --accent-primary:      #06d6a0;
+  --accent-primary-dim:  rgba(6, 214, 160, 0.18);
+  --accent-primary-glow: rgba(6, 214, 160, 0.40);
+  --accent-orange:       #f97316;
+  --accent-orange-glow:  rgba(249, 115, 22, 0.35);
+  --accent-red:          #ef4444;
+  --accent-red-glow:     rgba(239, 68, 68, 0.55);
+  --accent-purple:       #8b5cf6;
+  --accent-purple-glow:  rgba(139, 92, 246, 0.40);
+
+  --text-primary:   #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted:     #475569;
+  --text-accent:    #06d6a0;
+
+  --border-base:    rgba(255, 255, 255, 0.07);
+  --border-accent:  rgba(6, 214, 160, 0.30);
+  --border-strong:  rgba(6, 214, 160, 0.60);
+
+  --hud-corner:     #06d6a0;
+  --hud-glow:       rgba(6, 214, 160, 0.40);
+  --noise-opacity:  0.030;
+
+  --nav-bg:         rgba(9, 13, 26, 0.90);
+  --nav-border:     rgba(6, 214, 160, 0.15);
+
+  --scrollbar-track: #0f1629;
+  --scrollbar-thumb: #2d3855;
+  --scrollbar-hover: #3d4f75;
+
+  color-scheme: dark;
+}
+
+/* ----- LIGHT THEME (Competitive) ----- */
+[data-theme="light"] {
+  --bg-primary:      #f0f2f8;
+  --bg-secondary:    #ffffff;
+  --bg-tertiary:     #e6eaf4;
+  --bg-panel:        #ffffff;
+  --bg-card:         #ffffff;
+  --bg-input:        #eef0f7;
+
+  --overlay-purple:  rgba(99, 102, 241, 0.04);
+  --overlay-cyan:    rgba(0, 188, 212, 0.03);
+
+  --accent-primary:      #0891b2;
+  --accent-primary-dim:  rgba(8, 145, 178, 0.12);
+  --accent-primary-glow: rgba(8, 145, 178, 0.30);
+  --accent-orange:       #ea580c;
+  --accent-orange-glow:  rgba(234, 88, 12, 0.25);
+  --accent-red:          #dc2626;
+  --accent-red-glow:     rgba(220, 38, 38, 0.30);
+  --accent-purple:       #7c3aed;
+  --accent-purple-glow:  rgba(124, 58, 237, 0.30);
+
+  --text-primary:   #0f172a;
+  --text-secondary: #334155;
+  --text-muted:     #64748b;
+  --text-accent:    #0891b2;
+
+  --border-base:    rgba(0, 0, 0, 0.08);
+  --border-accent:  rgba(8, 145, 178, 0.30);
+  --border-strong:  rgba(8, 145, 178, 0.60);
+
+  --hud-corner:     #0891b2;
+  --hud-glow:       rgba(8, 145, 178, 0.30);
+  --noise-opacity:  0.012;
+
+  --nav-bg:         rgba(240, 242, 248, 0.95);
+  --nav-border:     rgba(8, 145, 178, 0.15);
+
+  --scrollbar-track: #e6eaf4;
+  --scrollbar-thumb: #b8c4d8;
+  --scrollbar-hover: #94a3b8;
+
+  color-scheme: light;
+}
+
+/* ----- MILITARY THEME (Tactical) ----- */
+[data-theme="military"] {
+  --bg-primary:      #0c1a0c;
+  --bg-secondary:    #121f12;
+  --bg-tertiary:     #1a2e1a;
+  --bg-panel:        #162016;
+  --bg-card:         #1e301e;
+  --bg-input:        #121f12;
+
+  --overlay-purple:  rgba(74, 124, 89, 0.12);
+  --overlay-cyan:    rgba(0, 0, 0, 0.40);
+
+  --accent-primary:      #4a7c59;
+  --accent-primary-dim:  rgba(74, 124, 89, 0.18);
+  --accent-primary-glow: rgba(74, 124, 89, 0.45);
+  --accent-orange:       #c2b280;
+  --accent-orange-glow:  rgba(194, 178, 128, 0.30);
+  --accent-red:          #ff3333;
+  --accent-red-glow:     rgba(255, 51, 51, 0.65);
+  --accent-purple:       #8b7d3d;
+  --accent-purple-glow:  rgba(139, 125, 61, 0.40);
+
+  --text-primary:   #d4d8c4;
+  --text-secondary: #8a9478;
+  --text-muted:     #5a6450;
+  --text-accent:    #4a7c59;
+
+  --border-base:    rgba(74, 124, 89, 0.18);
+  --border-accent:  rgba(74, 124, 89, 0.50);
+  --border-strong:  rgba(74, 124, 89, 0.80);
+
+  --hud-corner:     #c2b280;
+  --hud-glow:       rgba(74, 124, 89, 0.45);
+  --noise-opacity:  0.065;
+
+  --nav-bg:         rgba(12, 26, 12, 0.95);
+  --nav-border:     rgba(74, 124, 89, 0.25);
+
+  --scrollbar-track: #121f12;
+  --scrollbar-thumb: #2a3d2a;
+  --scrollbar-hover: #3a5a3a;
+
+  color-scheme: dark;
+}
+
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Prevent FOUC by defaulting to dark until JS sets data-theme */
+  background-color: #090d1a;
+}
+
+body {
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  font-family: var(--font-inter, 'Inter', Arial, Helvetica, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Noise texture overlay (pseudo-element on body) */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--noise-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+}
+
+/* Military theme: extra bg overlay gradient */
+[data-theme="military"] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(74, 124, 89, 0.015) 3px,
+    rgba(74, 124, 89, 0.015) 4px
+  );
+}
+
+/* ============================================================
+   SCROLLBARS
+   ============================================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover);
+}
+
+/* ============================================================
+   TYPOGRAPHY HELPERS
+   ============================================================ */
+
+.font-display {
+  font-family: var(--font-orbitron, 'Orbitron', monospace);
+}
+
+.font-tactical {
+  font-family: var(--font-rajdhani, 'Rajdhani', sans-serif);
+}
+
+.text-balance { text-wrap: balance; }
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-purple) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-orange {
+  background: linear-gradient(135deg, var(--accent-orange) 0%, var(--accent-red) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-glow {
+  text-shadow: 0 0 12px var(--accent-primary-glow), 0 0 24px var(--accent-primary-glow);
+}
+
+/* ============================================================
+   HUD EFFECTS
+   ============================================================ */
+
+/* --- Corner Brackets --- */
+.hud-panel {
+  position: relative;
+}
+
+.hud-panel::before,
+.hud-panel::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: var(--hud-corner);
+  border-style: solid;
+  opacity: 0.75;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.2s ease;
+}
+
+.hud-panel::before {
+  top: -1px;
+  left: -1px;
+  border-width: 2px 0 0 2px;
+}
+
+.hud-panel::after {
+  bottom: -1px;
+  right: -1px;
+  border-width: 0 2px 2px 0;
+}
+
+/* All 4 corners via wrapper (double bracket) */
+.hud-panel-full {
+  position: relative;
+}
+
+.hud-panel-full::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  border: 1px solid var(--border-accent);
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+/* Individual corner spans (for 4-corner effect) */
+.hud-corners {
+  --s: 12px;
+  --t: 2px;
+  position: relative;
+}
+.hud-corners::before,
+.hud-corners::after,
+.hud-corners > .corner-br,
+.hud-corners > .corner-tl {
+  content: '';
+  position: absolute;
+  width: var(--s);
+  height: var(--s);
+  border-color: var(--hud-corner);
+  border-style: solid;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.8;
+}
+.hud-corners::before { top: -1px; left: -1px; border-width: var(--t) 0 0 var(--t); }
+.hud-corners::after  { top: -1px; right: -1px; border-width: var(--t) var(--t) 0 0; }
+
+/* --- Glow Borders --- */
+.hud-glow-border {
+  box-shadow:
+    0 0 0 1px var(--border-accent),
+    0 0 10px var(--hud-glow);
+  transition: box-shadow 0.25s ease;
+}
+
+.hud-glow-border:hover,
+.hud-glow-border:focus-visible {
+  box-shadow:
+    0 0 0 1px var(--border-strong),
+    0 0 18px var(--hud-glow),
+    0 0 36px var(--hud-glow);
+}
+
+/* Active nav glow */
+.nav-item-active {
+  color: var(--text-accent);
+  text-shadow: 0 0 10px var(--accent-primary-glow);
+}
+
+.nav-dot-active {
+  background: var(--accent-primary);
+  box-shadow: 0 0 6px var(--accent-primary-glow), 0 0 12px var(--accent-primary-glow);
+}
+
+/* --- Pulse Glow (notifications) --- */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 4px var(--accent-red-glow);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 10px var(--accent-red-glow), 0 0 20px var(--accent-red-glow);
+    opacity: 0.88;
+  }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-cyan {
+  0%, 100% { box-shadow: 0 0 4px var(--accent-primary-glow); }
+  50%       { box-shadow: 0 0 14px var(--accent-primary-glow), 0 0 28px var(--accent-primary-glow); }
+}
+.pulse-cyan {
+  animation: pulse-cyan 2.5s ease-in-out infinite;
+}
+
+/* --- Scan-line flicker (subtle, on HUD elements) --- */
+@keyframes hud-flicker {
+  0%, 98%, 100% { opacity: 1; }
+  99% { opacity: 0.95; }
+}
+.hud-flicker { animation: hud-flicker 8s ease infinite; }
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.4rem;
+  font-family: var(--font-orbitron, monospace);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  border: none;
+  cursor: pointer;
+  position: relative;
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  box-shadow: 0 0 18px var(--accent-primary-glow);
+  transition: box-shadow 0.2s ease, transform 0.1s ease;
+}
+.btn-primary:hover {
+  box-shadow: 0 0 30px var(--accent-primary-glow), 0 0 60px var(--accent-primary-glow);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.4rem;
+  font-family: var(--font-orbitron, monospace);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--accent-primary);
+  border: 1px solid var(--border-accent);
+  cursor: pointer;
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  transition: box-shadow 0.2s ease, background 0.2s ease, transform 0.1s ease;
+}
+.btn-secondary:hover {
+  background: var(--accent-primary-dim);
+  box-shadow: 0 0 16px var(--accent-primary-glow);
+  transform: translateY(-1px);
+}
+
+/* Military theme: matte metallic buttons, sharp corners */
+[data-theme="military"] .btn-primary {
+  clip-path: none;
+  border-radius: 0;
+  background: linear-gradient(180deg, #5a8c69 0%, #3a6648 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 0 12px var(--accent-primary-glow);
+}
+[data-theme="military"] .btn-secondary {
+  clip-path: none;
+  border-radius: 0;
+  border-color: var(--accent-primary);
+}
+
+/* ============================================================
+   CARDS & PANELS
+   ============================================================ */
+
+.game-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-base);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.game-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--border-accent);
+  box-shadow: 0 8px 24px var(--hud-glow);
+}
+
+.game-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-base);
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+  background: linear-gradient(
+    to right,
+    var(--bg-secondary) 0%,
+    var(--bg-tertiary) 20%,
+    var(--bg-secondary) 40%,
+    var(--bg-secondary) 100%
+  );
+  background-size: 1000px 100%;
+}
+
+@keyframes float-up {
+  0%   { transform: translateY(0px); opacity: 1;   }
+  100% { transform: translateY(-24px); opacity: 0; }
+}
+
+@keyframes slide-down {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scan {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes loading-bar {
+  0%   { width: 0%; }
+  60%  { width: 88%; }
+  90%  { width: 95%; }
+  100% { width: 100%; }
+}
+
+.animate-fade-in  { animation: fade-in 0.4s ease forwards; }
+.animate-slide-down { animation: slide-down 0.35s ease forwards; }
+.animate-loading-bar { animation: loading-bar 3.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
+
+.bg-theme-primary    { background-color: var(--bg-primary); }
+.bg-theme-secondary  { background-color: var(--bg-secondary); }
+.bg-theme-panel      { background-color: var(--bg-panel); }
+.bg-theme-card       { background-color: var(--bg-card); }
+.text-theme-primary  { color: var(--text-primary); }
+.text-theme-secondary { color: var(--text-secondary); }
+.text-theme-muted    { color: var(--text-muted); }
+.text-theme-accent   { color: var(--text-accent); }
+.border-theme-base   { border-color: var(--border-base); }
+.border-theme-accent { border-color: var(--border-accent); }
+
+/* STRK (orange) callouts */
+.text-strk { color: var(--accent-orange); }
+.bg-strk   { background: var(--accent-orange-glow); }
+
+/* Danger/red */
+.text-danger  { color: var(--accent-red); }
+
+/* ============================================================
+   MOBILE SAFE AREA
+   ============================================================ */
+
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.safe-top    { padding-top: env(safe-area-inset-top, 0px); }
+

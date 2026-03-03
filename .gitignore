@@ -1,0 +1,70 @@
+# Root ignore rules for public review window
+
+# ccwg-web dependencies and build output
+ccwg-web/node_modules/
+ccwg-web/.pnp
+ccwg-web/.pnp.*
+ccwg-web/.yarn/*
+!ccwg-web/.yarn/patches
+!ccwg-web/.yarn/plugins
+!ccwg-web/.yarn/releases
+!ccwg-web/.yarn/versions
+ccwg-web/.next/
+ccwg-web/out/
+ccwg-web/build/
+ccwg-web/coverage/
+ccwg-web/*.tsbuildinfo
+ccwg-web/next-env.d.ts
+ccwg-web/vercel.json
+
+# ccwg-web local config and machine-specific files
+ccwg-web/.env*
+!ccwg-web/.env.example
+!ccwg-web/.env*.example
+ccwg-web/.vercel/
+ccwg-web/.vscode/
+ccwg-web/supabase/.temp/
+ccwg-web/diagnose-room.mjs
+ccwg-web/npm-debug.log*
+ccwg-web/yarn-debug.log*
+ccwg-web/yarn-error.log*
+ccwg-web/.pnpm-debug.log*
+
+# contracts dependencies and generated output
+contracts/node_modules/
+contracts/target/
+
+# contracts local secrets and local-only config
+contracts/.env
+contracts/.env.*
+!contracts/.env.example
+contracts/.vscode/
+contracts/.voyeger.toml
+contracts/dojo_mainnet.toml
+contracts/dojo_dev.toml
+contracts/dojo_release.toml
+contracts/dojo_sepolia.toml
+contracts/*.local.toml
+
+# general OS/editor noise
+**/.DS_Store
+**/*.pem
+
+# node_modules everywhere
+**/node_modules/
+
+# ccwg-server build output and env
+ccwg-server/dist/
+ccwg-server/.env
+ccwg-server/.env.*
+!ccwg-server/.env.example
+
+# shared package build output
+packages/shared/dist/
+
+# Root workspace
+pnpm-lock.yaml
+
+# Database impt files
+ccwg-web/supabase/*.temp
+ccwg-web/*supabase

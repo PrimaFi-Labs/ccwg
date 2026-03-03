@@ -1,0 +1,8 @@
+packages:
+  - 'ccwg-web'
+  - 'ccwg-server'
+  - 'packages/*'
+
+ignoredBuiltDependencies:
+  - sharp
+  - unrs-resolver
