@@ -18,7 +18,7 @@
 
 </div>
 
-**Implementation:** `ccwg-web/server/match-orchestrator.ts`
+**Implementation:** `ccwg-server/src/match-orchestrator.ts`
 
 This ensures:
 - ✅ Anti-cheat (no client-side deception possible)
@@ -38,7 +38,7 @@ Each round follows this strict sequence:
 │ ─────────────────────────────────────────────────────────── │
 │ • Retrieve current asset prices from oracle               │
 │ • Send round_start event to both players                  │
-│ • Start countdown timer (typically 30-60 seconds)         │
+│ • Start countdown timer (60 seconds)                      │
 └─────────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -46,24 +46,24 @@ Each round follows this strict sequence:
 │ ─────────────────────────────────────────────────────────── │
 │ • Players select: Attack, Defend, or Charge              │
 │ • Players select card from deck (if not locked)          │
-│ • Submit via /api/matches/{id}/actions                   │
-│ • Timeout: auto-submit NoAction                          │
+│ • Submit via WebSocket                                    │
+│ • Timeout: auto-submit NoAction after 60 seconds         │
 └─────────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ STEP 3: Momentum Reveal                                   │
 │ ─────────────────────────────────────────────────────────── │
 │ • Compare card's asset price: (current - previous)       │
-│ • Calculate decimal momentum | Convert to basis points   │
-│ • Send momentum_reveal event (no longer predictable)     │
+│ • Calculate decimal momentum                              │
+│ • Send momentum_reveal event                              │
 └─────────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ STEP 4: Combat Resolution                                │
 │ ─────────────────────────────────────────────────────────── │
-│ • Evaluate action pair (8 possible combinations)         │
+│ • Evaluate action pair                                    │
 │ • Apply damage calculation formula                       │
-│ • Execute ability effects (if relevant)                 │
+│ • Execute ability effects (if charge was active)         │
 │ • Determine round winner or draw                         │
 └─────────────────────────────────────────────────────────────┘
                             ↓
@@ -81,40 +81,38 @@ Each round follows this strict sequence:
 
 ## III. Player Actions
 
-### The Four Core Actions
+### The Five Actions
 
-| Action | Effect | Strategic Use | Cost |
-|--------|--------|----------------|----|
-| **Attack** | Direct damage boost | Offensive pressure | None |
-| **Defend** | Incoming damage reduction | Defensive play | None |
-| **Charge** | Enable ability next round | Setup/combo plays | 1 per match |
-| **NoAction** | Take round off (timeout) | Forced by timeout only | None |
+| Action | Effect | Strategic Use | Limit |
+|--------|--------|---------------|-------|
+| **Attack** | Direct damage boost from momentum | Offensive pressure | Unlimited |
+| **Defend** | Incoming damage reduction | Defensive play | Unlimited |
+| **Charge** | Enable card's ability | Setup/combo plays | Once per match |
+| **UseAbility** | Trigger charged ability | Ability execution | After Charge |
+| **NoAction** | No input (timeout) | Forced by timeout only | N/A |
 
 ### Action Mechanics Deep Dive
 
 **Attack**
-- Increases outgoing damage via momentum affinity
-- Positive momentum = higher damage multiplier (up to +60%)
-- Vulnerable to Defend if opponent predicts correctly
-- Ties vs Attack: Higher base power wins
+- Increases outgoing damage via momentum × attack affinity
+- Positive momentum = higher damage; negative momentum = lower damage
+- In Attack vs Attack: higher computed damage wins the round
 
-**Defend** 
-- Reduces incoming damage via momentum immunity
-- Negative momentum becomes negligible (-5% instead of -60%)
-- Leaves player passive (low damage output)
-- Ties vs Defense: Both take minimal damage
+**Defend**
+- Reduces incoming damage via momentum × defense affinity
+- Positive momentum on defense divides momentum effect (less damage taken)
+- In Defend vs Defend: lower damage output from both, often a draw
 
 **Charge**
 - Limited to **1 charge action per entire match**
-- Activates selected card's ability for next round
-- Ability effects can persist for 2-5 rounds post-activation
-- Cannot be used by both players in same round (API prevents it)
+- Activates selected card's ability
+- All abilities are `charge_triggered` and `once_per_match`
+- If both players Charge in the same round: forced draw, both abilities activate
 
 **NoAction**
-- Auto-triggered if player doesn't submit before timer expires
-- Counts as "no defensive value"
-- vs Attack: Attacker usually wins (takes unmitigated damage)
-- vs Defend: Defender's partial mitigation still applies
+- Auto-triggered if player doesn't submit before the 60-second timer expires
+- Counts as no offensive or defensive value
+- vs Attack: NoAction player takes full damage
 - Both NoAction: Draw round (0 damage each)
 
 ---
@@ -133,8 +131,6 @@ Input:    Previous Round Price, Current Round Price
           Formula: (Current - Previous) / Previous
           ↓
 Output:   Decimal (e.g., 0.05 = +5%, -0.03 = -3%)
-          ↓
-For Display: × 10,000 = Basis Points (-500 to +1,000 typical range)
 ```
 
 **Example Scenario:**
@@ -142,183 +138,164 @@ For Display: × 10,000 = Basis Points (-500 to +1,000 typical range)
 BTC Price Last Round:  $45,000
 BTC Price This Round:  $45,900
 Momentum Calculation:  (45,900 - 45,000) / 45,000 = 0.02 (2%)
-Momentum (bps):        200 basis points
 ```
 
 ### Impact on Damage
 
-The momentum is now applied to your selected card's affinity stats:
-
-**Card Example - "Bitcoin Base Card":**
-- Base Power: 50
-- Attack Affinity: 1.2× (120%)
-- Defense Affinity: 0.85× (85%)
-- Charge Affinity: 1.0× (100%)
-
-**Scenario: Momentum = +200 bps (0.02 gain)**
-
-| Action | Calculation | Final Damage |
-|--------|------------|--------------|
-| Attack | 50 × (1 + 0.02 × 1.2) = 50 × 1.024 | **51.2** |
-| Defend | 50 × (1 - 0.02 × 0.85) = 50 × 0.983 | 49.15 (converted to mitigation) |
-| Charge | 50 × (1 + 0) | 50 (charge uses ability, not momentum scaling) |
+Momentum feeds into the damage formula via the card's affinity stats and volatility sensitivity.
 
 ---
 
-## V. Card Affinity System
+## V. Damage Calculation Formula
 
-### Understanding Card Stats
+### How Damage is Computed
 
-Each card has four core stats that determine its playstyle:
+Source: `packages/shared/src/lib/combat/engine.ts` → `CombatEngine.computeDamage()`
 
 ```
-┌─────────────────────────────────────────────┐
-│  "Ethereum Guardian"                        │
-├─────────────────────────────────────────────┤
-│ Base Power:          45 points              │
-│ Attack Affinity:     0.95× (weakness)       │
-│ Defense Affinity:    1.15× (strength)       │
-│ Charge Affinity:     0.90× (weakness)       │
-│ Volatility Sens:     1.8× (high swing)      │
-│ Ability ID:          eth_gas_surge          │
-└─────────────────────────────────────────────┘
+Step 1: effectiveMomentum = momentum × volatility_sensitivity
+        (ability effects like momentum_boost or ignore_negative applied here)
+
+Step 2: momentumPercent = effectiveMomentum × 100
+
+Step 3: Compute adjusted value based on action:
+        ┌───────────┬────────────────────────────────────────────────────────────┐
+        │ ATTACK    │ if momentumPercent ≥ 0: adjusted = momentumPercent × affinity     │
+        │           │ if momentumPercent < 0: adjusted = |momentumPercent| / affinity    │
+        ├───────────┼────────────────────────────────────────────────────────────┤
+        │ DEFEND    │ if momentumPercent ≥ 0: adjusted = momentumPercent / affinity      │
+        │           │ if momentumPercent < 0: adjusted = |momentumPercent| × affinity    │
+        ├───────────┼────────────────────────────────────────────────────────────┤
+        │ CHARGE    │ if momentumPercent ≥ 0: adjusted = momentumPercent / affinity      │
+        │           │ if momentumPercent < 0: adjusted = |momentumPercent| × affinity    │
+        └───────────┴────────────────────────────────────────────────────────────┘
+
+Step 4: damage = basePower + adjusted
+
+Step 5: Apply ability damage multipliers (e.g., defense_penalty)
+
+Step 6: damage = max(0, damage)
 ```
 
-### Affinity Interpretation
+### Card Stats
 
-- **1.2×** - Multiplier above 1.0 = Favorable to momentum
-- **0.85×** - Multiplier below 1.0 = Momentum has reduced effect
-- **1.0×** - No scaling; static behavior
+Each card has these stats:
 
-### Volatility Sensitivity
+| Stat | Role |
+|------|------|
+| `base_power` (or `base`) | Base damage before momentum |
+| `attack_affinity` | Multiplier/divisor for Attack action momentum |
+| `defense_affinity` | Multiplier/divisor for Defend action momentum |
+| `charge_affinity` | Multiplier/divisor for Charge action momentum |
+| `volatility_sensitivity` | Scales raw momentum before affinity application |
 
-Represents how much the card is affected by extreme price swings:
+### Example Calculation
 
-- **Low (0.8×)** - Stable cards, consistent performance
-- **High (2.0×+)** - Volatile cards, risky but rewarding
+```
+Card: base_power = 50, attack_affinity = 1.1, volatility_sensitivity = 1.5
+Momentum: +0.02 (2%)
+Action: Attack
 
-A volatile card with +10% momentum gains more damage but also takes more damage with -10% momentum.
+effectiveMomentum = 0.02 × 1.5 = 0.03
+momentumPercent   = 0.03 × 100 = 3.0
+adjusted          = 3.0 × 1.1 = 3.3   (Attack + positive momentum)
+damage            = 50 + 3.3 = 53.3 → rounds to 53
+```
 
 ---
 
 ## VI. Card Abilities & Special Effects
 
-Each card carries one unique ability that triggers when you **Charge**. Abilities can:
-- Boost momentum for next round
-- Shield against opponent actions
-- Disable opponent abilities
-- Apply damage multipliers
+Each card carries one unique ability that triggers when you **Charge**. All abilities are `charge_triggered` and `once_per_match`.
 
-### Seeded Abilities Reference
+### Ability Reference (from `ccwg-web/src/config/abilities.ts`)
 
-**1. Bitcoin Halving Pressure**
-- Effect: `damage_taken_multiplier: 0.5×` (you take half incoming damage)
-- Duration: Charge resolution window
-- When to Use: After taking heavy damage, to "tank" effectively
-- Counter: Opponent should attack less, or use defense-focusing abilities
+**1. Bitcoin — HALVING PRESSURE** (`btc_halving_pressure`)
+- Type: `momentum_amplifier`
+- Effect: `damage_multiplier: 0.5` — you take half incoming damage
+- When to Use: When facing heavy attacks, as a tank round
 
-**2. Starknet ZK Cloak**  
-- Effect: `opponent_information_obscured`, `cloak_rounds` (default 2)
-- Duration: Config-driven cloak window (default 2-round window)
-- When to Use: When leading, to reduce opponent's predictability
-- Counter: Mix actions more frequently
+**2. Starknet — ZK-CLOAK** (`strk_zk_cloak`)
+- Type: `visibility_denial`
+- Effect: `cloak_rounds: 2` — opponent only sees their own data for 2 rounds
+- When to Use: When leading, to reduce opponent's information advantage
 
-**3. Doge Loyal Guard**
-- Effect: If opponent attacks, incoming damage is reduced (`attack_damage_multiplier`, default 0.75)
-- Duration: Charge resolution window
-- When to Use: Clutch round to survive potential lethal
-- Counter: Charge your own card for synergy
+**3. Dogecoin — LOYAL GUARD** (`doge_loyal_guard`)
+- Type: `defensive_reflect`
+- Effect: `attack_damage_multiplier: 0.75` — if opponent attacks, their damage is reduced by 25%
+- When to Use: Clutch round to survive potential lethal attack
 
-**4. Solana Desync**
-- Effect: `opponent_charge_locked + opponent_swap_locked`
-- Duration: Config-driven lock window (`duration_rounds`, default 1)
-- When to Use: To prevent opponent ability combos
-- Counter: Be tactical with card selection before desync lands
+**4. Solana — DE-SYNC** (`sol_desync`)
+- Type: `action_lock`
+- Effect: `disable_swap: true`, `disable_charge: true`, `duration_rounds: 1`
+- Opponent cannot swap cards or Charge for 1 round
+- When to Use: To prevent opponent ability combos or lock them onto a bad card
 
-**5. Ethereum Gas Surge**
-- Effect: If your momentum is negative, incoming damage is reduced (`damage_multiplier`, default 0.8)
-- Duration: Charge resolution window (conditional)
-- When to Use: When asset momentum is tanking
-- Counter: Attack more aggressively before charge resolves
-
-### Strategic Ability Sequencing
-
-Optimal ability usage pattern:
-```
-Round 1-3:   Gather intel on opponent's play style
-Round 2-5:   Charge ability when you predict opponent's weakness
-Round 6-N:   Use ability effects to swing momentum in your favor
-Round N-1:   Hold charge for potential comeback
-Round N:     Deploy charge if match is tight
-```
+**5. Ethereum — GAS SURGE** (`eth_gas_surge`)
+- Type: `momentum_stabilizer`
+- Effect: `damage_multiplier: 0.8` — if your momentum is negative, opponent damage reduced by 20%
+- When to Use: When your asset price is dropping, to mitigate the penalty
 
 ---
 
-## VII. Combat Resolution Matrix
+## VII. Combat Resolution
 
-### All 8 Action Pair Outcomes
+### Round Winner Determination
 
-| Attacker | Defender | Outcome | Damage to Def |
-|----------|----------|---------|--------------|
-| Attack | Attack | Higher base power wins | Base × momentum ×  affinity |
-| Attack | Defend | Attacker wins | Base × momentum × 0.4 (reduced) |
-| Attack | Charge | Attacker advantage | Base × momentum |
-| Attack | NoAction | Attacker wins (heavy) | Base × momentum × 1.2 |
-| Defend | Attack | Defender partial | Base × momentum × 0.5 |
-| Defend | Defend | Draw (no damage) | 0 (both mitigate) |
-| Defend | Charge | Charge priority | Low damage to defender |
-| Defend | NoAction | Defender advantage | 0 (passive vs passive) |
-| Charge | Attack | Charge often draws | Ability activates, damage varies |
-| Charge | Defend | Mixed outcome | Ability triggers, defender mitigates |
-| Charge | Charge | Force draw | Both abilities activate next round |
-| Charge | NoAction | Charge advantage | Ability setup + damage |
+Source: `packages/shared/src/lib/combat/engine.ts` → `CombatEngine.resolveCombat()`
 
-### Key Tactical Principles
+Both players' damage is computed independently. The round winner is determined by the action pairing:
 
-1. **Rock-Paper-Scissors Balance:**
-   - Attack > NoAction > Defend > Attack
-   - No pure dominant strategy
+| Player 1 | Player 2 | Winner Logic |
+|-----------|----------|-------------|
+| Attack | Attack | Higher computed damage wins |
+| Attack | Defend | Higher computed damage wins |
+| Attack | Charge | Attacker advantage on tie |
+| Attack | NoAction | Higher damage wins (attacker usually) |
+| Defend | Defend | Lower damage output from both → can draw |
+| Defend | Charge | Defender advantage on tie |
+| Charge | Charge | Forced draw, both abilities activate |
+| NoAction | NoAction | Draw (0 damage each) |
 
-2. **Charge Power:**
-   - Charges can only be used once per match
-   - Both players charging in same round is prevented
-   - Ability effects persist for multiple rounds
+**Key notes:**
+- There is no rock-paper-scissors hard counter — damage computation determines outcome
+- Charge absorbs a round to activate ability; attacker has tie-break advantage vs Charge
+- Defender has tie-break advantage vs Charge
+- Ability effects (damage_taken_multiplier, block_action) modify damage before comparison
 
-3. **Momentum Variance:**
-   - Positive momentum helps Attack
-   - Negative momentum helps Defend
-   - Extreme swings create tactical opportunities
+### Ability Effects in Combat
+
+| Effect Type | Description |
+|-------------|-------------|
+| `momentum_boost` | Adds to effective momentum |
+| `ignore_negative` | Clamps negative momentum to 0 |
+| `defense_penalty` | Multiplies damage by `(1 - value/100)` |
+| `block_action` | Forces opponent's Attack → Defend |
+| `damage_taken_multiplier` | Multiplies incoming damage (e.g., 0.5 = halved) |
 
 ---
 
 ## VIII. Card Swaps & Limits
 
-### Swap Rules
+### Swap Rules by Mode
 
-| Match Type | Swaps Available | When |
-|-----------|-----------------|------|
-| VsAI | Unlimited (999) | Anytime between rounds |
-| 10-Round | Unlimited (999) | Anytime between rounds |
-| 3-Round | 2 swaps | Anytime between rounds |
-| 5-Round | 2 swaps | Anytime between rounds |
+| Mode | 3-Round | 5-Round | 10-Round |
+|------|---------|---------|----------|
+| **VsAI** | 2 | 2 | 999 (unlimited) |
+| **Ranked1v1** | 2 | 2 | 999 (unlimited) |
+| **Challenge (Fun)** | 999 | 999 | 999 |
+| **Challenge (Strict)** | 2 | 2 | 4 |
+| **WarZone** | 2 | 2 | 999 (unlimited) |
+| **Room** | 2 | 2 | 999 (unlimited) |
+
+Source: `ccwg-web/src/config/constants.ts` (SWAP_LIMITS) and `packages/shared/src/lib/social/shared.ts` (getChallengeSwapLimit)
 
 ### Swap Mechanics
 
-- **Time:** Can only swap between rounds, not mid-round
+- **When:** Can only swap between rounds, not mid-round
 - **Cost:** Free (no STRK charged)
 - **Effect on Charge:** If you swap after charging, charge state is cleared
 - **Card Lock:** After swap, new card is immediately playable next round
-
-### Strategic Swapping
-
-```
-Scenario: You charged Bitcoin but opponent also charged
-Optimal Play:
-  1. After round resolves, check opponent's card
-  2. If unfavorable matchup, swap to counter-card
-  3. New card ready immediately (charge cleared but that's OK)
-  4. Opponent must decide: charge next round or pass?
-```
 
 ---
 
@@ -327,92 +304,86 @@ Optimal Play:
 ### Best-Of Formats
 
 | Format | Total Rounds | Rounds to Win |
-|--------|--------------|---------------|
+|--------|-------------|---------------|
 | Best-of-3 | 3 | 2 |
 | Best-of-5 | 5 | 3 |
 | Best-of-10 | 10 | 6 |
 
 Winners determined by:
-1. First to reach majority rounds wins → **Match Ends**
+1. First to reach majority round wins → **Match Ends**
 2. If tied after all rounds → **Draw declared**
 
-### Draw Mechanics
-
-- Both win/loss counts increment
-- Slightly affects ranking (no rating change typically)
-- Rare to occur in high-stakes matches
-
 ---
 
-## X. Match Data & Audit Trail
+## X. Match Data & Types
 
-### Data Captured Per Match
+### Core TypeScript Types
 
-**Match Record:**
-```tsx
-{
-  match_id: "0x123abc...",
-  player_1: { address, deck, final_sp_delta },
-  player_2: { address, deck, final_sp_delta },
-  mode: "Ranked1v1",
-  status: "Completed",
-  winner: "player_1",
-  rounds_won: [1, 1, 2], // Scores per round
-  transcript_hash: "0x7f9e...", // Immutable proof
-  created_at: "2025-02-26T14:32:00Z",
-  settled_on_chain: true,
-  settlement_tx: "0x2a3f..."
+Source: `packages/shared/src/types/`
+
+**RoundResult** (from `game.ts`):
+```typescript
+interface RoundResult {
+  round_number: number;
+  p1_action: PlayerAction;
+  p2_action: PlayerAction;
+  p1_damage: number;
+  p2_damage: number;
+  winner: string;
+  p1_momentum: MomentumData;
+  p2_momentum: MomentumData;
+  p1_ability_triggered: boolean;
+  p2_ability_triggered: boolean;
 }
 ```
 
-**Per-Round Snapshot:**
-```tsx
-{
-  round_num: 3,
-  asset: "ETH",
-  price_previous: 2800,
-  price_current: 2850,
-  momentum_bps: 178,
-  player_1_action: "Attack",
-  player_1_card: "eth_guardian",
-  player_2_action: "Defend",
-  player_2_card: "btc_fortress",
-  damage_to_p1: 25,
-  damage_to_p2: 12,
-  round_winner: "player_2", // Took less damage
-  ability_triggered: null
+**MomentumData** (from `game.ts`):
+```typescript
+interface MomentumData {
+  asset: CardAsset;
+  base_price: number;
+  snapshot_price: number;
+  momentum_percent: number;
+}
+```
+
+**CardStats** (from `combat/engine.ts`):
+```typescript
+interface CardStats {
+  base: number;
+  base_power?: number | null;
+  attack_affinity: number;
+  defense_affinity: number;
+  charge_affinity: number;
+  volatility_sensitivity: number;
 }
 ```
 
 ---
 
-## XI. Stark Points (SP) & Progression
+## XI. XP & Progression
 
-### SP Award Rules
+### XP Award Rules
 
-**Ranked PvP (Non-Event):**
-- Win: +30 to +50 SP (varies by opponent strength)
-- Draw: +5 SP
-- Loss: -30 to -10 SP (varies by opponent strength)
+Source: `ccwg-web/src/config/constants.ts`
 
-**VsAI:**
-- Easy Bot: +10 SP
-- Medium Bot: +20 SP
-- Hard Bot: +40 SP
+| Outcome | XP |
+|---------|----|
+| Win | +100 |
+| Loss | +25 |
+| Timeout | −10 |
 
-**Events:**
-- Not awarded per-match
-- Awarded at event end based on final ranking
+XP is awarded across all modes (VsAI, Ranked, Challenge).
 
-### SP Tiers
+### Stake Multipliers
 
-| Tier | SP Range | Rank |
-|------|----------|------|
-| Bronze | 0-500 | New Players |
-| Silver | 500-1500 | Casual Players |
-| Gold | 1500-3000 | Competitive |
-| Platinum | 3000-5000 | Elite |
-| Diamond | 5000+ | Top 1% |
+Higher-stake matches earn bonus XP:
+
+| Tier | Multiplier |
+|------|-----------|
+| Tier10 (10 STRK) | 1× |
+| Tier20 (20 STRK) | 3× |
+| Tier100 (100 STRK) | 5× |
 
 ---
 
@@ -420,10 +391,11 @@ Winners determined by:
 
 ### Timeout Behavior
 
-If a player doesn't submit an action before the round timer expires:
+If a player doesn't submit an action before the 60-second round timer expires:
 - Action auto-submits as `NoAction`
-- Player still takes full damage that round
+- Player takes full, unmitigated damage that round
 - Prevents match deadlock indefinitely
+- A 2-second grace period (`ROUND_GRACE_PERIOD_MS`) accounts for network latency
 
 ### Settlement Logic
 
@@ -435,7 +407,10 @@ If a player doesn't submit an action before the round timer expires:
 - Per-match settlement skipped (event stakes locked at registration)
 - Only event-level `finalize_event` executes on-chain
 
-**Room Matches:**
-- All accounting off-chain in Supabase
-- Room settlement at expiration or completion
+**Challenge Matches:**
+- No stakes, no on-chain settlement
+- Result written to DB only
 
+**Room Matches:**
+- Per-match settlement off-chain in Supabase
+- Room-level settlement available via Room System on-chain
