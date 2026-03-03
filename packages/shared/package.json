@@ -17,6 +17,7 @@
     "starknet": "^9.2.1"
   },
   "devDependencies": {
+    "@types/node": "^22",
     "typescript": "^5"
   }
 }

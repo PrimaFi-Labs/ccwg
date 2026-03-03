@@ -8,7 +8,7 @@ import {
   ORACLE_SYSTEM_ADDRESS,
 } from '@/src/types/contracts';
 import { getNetworkConfig } from './network';
-import ORACLE_ABI from '../../../server/abis/oracle_system.abi.json';
+import ORACLE_ABI from '@/src/abis/oracle_system.abi.json';
 
 type CardAsset = 'BTC' | 'ETH' | 'STRK' | 'SOL' | 'DOGE';
 

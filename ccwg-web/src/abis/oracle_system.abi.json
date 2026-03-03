@@ -1,0 +1,287 @@
+[
+  {
+    "type": "impl",
+    "name": "oracle_system__ContractImpl",
+    "interface_name": "dojo::contract::interface::IContract"
+  },
+  {
+    "type": "interface",
+    "name": "dojo::contract::interface::IContract",
+    "items": []
+  },
+  {
+    "type": "impl",
+    "name": "DojoDeployedContractImpl",
+    "interface_name": "dojo::meta::interface::IDeployedResource"
+  },
+  {
+    "type": "struct",
+    "name": "core::byte_array::ByteArray",
+    "members": [
+      {
+        "name": "data",
+        "type": "core::array::Array::<core::bytes_31::bytes31>"
+      },
+      {
+        "name": "pending_word",
+        "type": "core::felt252"
+      },
+      {
+        "name": "pending_word_len",
+        "type": "core::internal::bounded_int::BoundedInt::<0, 30>"
+      }
+    ]
+  },
+  {
+    "type": "interface",
+    "name": "dojo::meta::interface::IDeployedResource",
+    "items": [
+      {
+        "type": "function",
+        "name": "dojo_name",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::byte_array::ByteArray"
+          }
+        ],
+        "state_mutability": "view"
+      }
+    ]
+  },
+  {
+    "type": "impl",
+    "name": "OracleActionsImpl",
+    "interface_name": "ccwg::systems::oracle_system::IOracleActions"
+  },
+  {
+    "type": "enum",
+    "name": "core::bool",
+    "variants": [
+      {
+        "name": "False",
+        "type": "()"
+      },
+      {
+        "name": "True",
+        "type": "()"
+      }
+    ]
+  },
+  {
+    "type": "enum",
+    "name": "ccwg::models::CardAsset",
+    "variants": [
+      {
+        "name": "BTC",
+        "type": "()"
+      },
+      {
+        "name": "ETH",
+        "type": "()"
+      },
+      {
+        "name": "STRK",
+        "type": "()"
+      },
+      {
+        "name": "SOL",
+        "type": "()"
+      },
+      {
+        "name": "DOGE",
+        "type": "()"
+      }
+    ]
+  },
+  {
+    "type": "struct",
+    "name": "ccwg::systems::oracle_system::PriceResponse",
+    "members": [
+      {
+        "name": "price",
+        "type": "core::integer::u128"
+      },
+      {
+        "name": "decimals",
+        "type": "core::integer::u32"
+      },
+      {
+        "name": "last_updated_timestamp",
+        "type": "core::integer::u64"
+      }
+    ]
+  },
+  {
+    "type": "interface",
+    "name": "ccwg::systems::oracle_system::IOracleActions",
+    "items": [
+      {
+        "type": "function",
+        "name": "capture_round_snapshot",
+        "inputs": [
+          {
+            "name": "match_id",
+            "type": "core::integer::u128"
+          },
+          {
+            "name": "round_number",
+            "type": "core::integer::u8"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::bool"
+          }
+        ],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "get_price_for_asset",
+        "inputs": [
+          {
+            "name": "asset",
+            "type": "ccwg::models::CardAsset"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "ccwg::systems::oracle_system::PriceResponse"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "check_oracle_health",
+        "inputs": [
+          {
+            "name": "asset",
+            "type": "ccwg::models::CardAsset"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "(core::bool, core::integer::u64)"
+          }
+        ],
+        "state_mutability": "view"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "dojo_init",
+    "inputs": [],
+    "outputs": [],
+    "state_mutability": "view"
+  },
+  {
+    "type": "impl",
+    "name": "WorldProviderImpl",
+    "interface_name": "dojo::contract::components::world_provider::IWorldProvider"
+  },
+  {
+    "type": "struct",
+    "name": "dojo::world::iworld::IWorldDispatcher",
+    "members": [
+      {
+        "name": "contract_address",
+        "type": "core::starknet::contract_address::ContractAddress"
+      }
+    ]
+  },
+  {
+    "type": "interface",
+    "name": "dojo::contract::components::world_provider::IWorldProvider",
+    "items": [
+      {
+        "type": "function",
+        "name": "world_dispatcher",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "dojo::world::iworld::IWorldDispatcher"
+          }
+        ],
+        "state_mutability": "view"
+      }
+    ]
+  },
+  {
+    "type": "impl",
+    "name": "UpgradeableImpl",
+    "interface_name": "dojo::contract::components::upgradeable::IUpgradeable"
+  },
+  {
+    "type": "interface",
+    "name": "dojo::contract::components::upgradeable::IUpgradeable",
+    "items": [
+      {
+        "type": "function",
+        "name": "upgrade",
+        "inputs": [
+          {
+            "name": "new_class_hash",
+            "type": "core::starknet::class_hash::ClassHash"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      }
+    ]
+  },
+  {
+    "type": "constructor",
+    "name": "constructor",
+    "inputs": []
+  },
+  {
+    "type": "event",
+    "name": "dojo::contract::components::upgradeable::upgradeable_cpt::Upgraded",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "class_hash",
+        "type": "core::starknet::class_hash::ClassHash",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "dojo::contract::components::upgradeable::upgradeable_cpt::Event",
+    "kind": "enum",
+    "variants": [
+      {
+        "name": "Upgraded",
+        "type": "dojo::contract::components::upgradeable::upgradeable_cpt::Upgraded",
+        "kind": "nested"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "dojo::contract::components::world_provider::world_provider_cpt::Event",
+    "kind": "enum",
+    "variants": []
+  },
+  {
+    "type": "event",
+    "name": "ccwg::systems::oracle_system::oracle_system::Event",
+    "kind": "enum",
+    "variants": [
+      {
+        "name": "UpgradeableEvent",
+        "type": "dojo::contract::components::upgradeable::upgradeable_cpt::Event",
+        "kind": "nested"
+      },
+      {
+        "name": "WorldProviderEvent",
+        "type": "dojo::contract::components::world_provider::world_provider_cpt::Event",
+        "kind": "nested"
+      }
+    ]
+  }
+]
