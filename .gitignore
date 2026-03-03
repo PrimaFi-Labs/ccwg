@@ -15,7 +15,6 @@ ccwg-web/build/
 ccwg-web/coverage/
 ccwg-web/*.tsbuildinfo
 ccwg-web/next-env.d.ts
-ccwg-web/vercel.json
 
 # ccwg-web local config and machine-specific files
 ccwg-web/.env*
