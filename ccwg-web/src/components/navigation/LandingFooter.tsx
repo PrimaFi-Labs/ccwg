@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { SiX, SiDiscord, SiGithub } from '@icons-pack/react-simple-icons';
+import { SiX, SiYoutube } from '@icons-pack/react-simple-icons';
+import { Mail } from 'lucide-react';
 
 export function LandingFooter() {
   return (
@@ -22,13 +23,15 @@ export function LandingFooter() {
             <div className="flex items-center gap-3 mt-5">
               {[
                 { icon: SiX, href: '#', label: 'X' },
-                { icon: SiDiscord, href: '#', label: 'Discord' },
-                { icon: SiGithub, href: '#', label: 'GitHub' },
+                { icon: SiYoutube, href: 'https://youtube.com/@primafilabs?si=aKIgFWTcH4oXcTuM', label: 'YouTube' },
+                { icon: Mail, href: 'mailto:contact@primafi.xyz', label: 'Email' },
               ].map(({ icon: Icon, href, label }) => (
                 <a
                   key={label}
                   href={href}
                   aria-label={label}
+                  target={href.startsWith('http') ? '_blank' : undefined}
+                  rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
                   className="w-8 h-8 rounded flex items-center justify-center transition-all duration-200"
                   style={{
                     background: 'rgba(6,214,160,0.07)',
@@ -137,17 +140,33 @@ export function LandingFooter() {
           <p className="text-xs" style={{ color: 'rgba(148,163,184,0.5)' }}>
             © {new Date().getFullYear()} CCWG. All rights reserved.
           </p>
-          <p className="text-xs" style={{ color: 'rgba(148,163,184,0.4)' }}>
-            Built on{' '}
-            <a
-              href="https://starknet.io"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition-colors"
-              style={{ color: 'rgba(6,214,160,0.7)' }}
-            >
-              Starknet
-            </a>
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+            <p className="text-xs" style={{ color: 'rgba(148,163,184,0.4)' }}>
+              Made by{' '}
+              <a
+                href="https://primafi.xyz"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-colors font-semibold"
+                style={{ color: 'rgba(148,163,184,0.6)' }}
+              >
+                PrimaFi Labs
+              </a>
+            </p>
+            <span className="hidden sm:inline text-xs" style={{ color: 'rgba(148,163,184,0.2)' }}>·</span>
+            <p className="text-xs" style={{ color: 'rgba(148,163,184,0.4)' }}>
+              Built on{' '}
+              <a
+                href="https://starknet.io"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-colors"
+                style={{ color: 'rgba(6,214,160,0.7)' }}
+              >
+                Starknet
+              </a>
+            </p>
+          </div>
           </p>
         </div>
       </div>

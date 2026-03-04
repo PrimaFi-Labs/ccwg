@@ -193,7 +193,7 @@ export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
-    <div style={{ background: '#090d1a', color: '#f8fafc', fontFamily: "'Inter', sans-serif" }}>
+    <div className="overflow-x-hidden" style={{ background: '#090d1a', color: '#f8fafc', fontFamily: "'Inter', sans-serif" }}>
       <section
         className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-16"
         style={{ background: 'linear-gradient(180deg, #090d1a 0%, #0c1030 50%, #090d1a 100%)' }}
@@ -229,12 +229,12 @@ export default function LandingPage() {
 
           <motion.h1 initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }}
             className="font-display font-black uppercase leading-none mb-4 tracking-tight"
-            style={{ fontSize: 'clamp(3rem, 8vw, 6.5rem)' }}
+            style={{ fontSize: 'clamp(2.4rem, 7vw, 6rem)' }}
           >
-            <span style={{ color: '#f8fafc' }}>CCWG</span>
+            <span style={{ color: '#f8fafc' }}>Crypto Card</span>
             <br />
             <span style={{ background: 'linear-gradient(135deg, #06d6a0 0%, #8b5cf6 50%, #f97316 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-              REALTIME CARD TACTICS
+              War Game
             </span>
           </motion.h1>
 
