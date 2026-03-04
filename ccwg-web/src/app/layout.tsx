@@ -32,12 +32,19 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   themeColor: '#090d1a',
+  viewportFit: 'cover',
 };
 
 export const metadata: Metadata = {
   title: 'CCWG — Crypto Card War Game',
   description: 'Battle with crypto cards in real-time matches on Starknet. High-stakes, strategic, on-chain.',
   keywords: ['crypto', 'trading cards', 'web3', 'starknet', 'blockchain game', 'card battle'],
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'CCWG',
+  },
   openGraph: {
     title: 'CCWG — Crypto Card War Game',
     description: 'Battle with crypto cards in real-time matches on Starknet.',
@@ -53,10 +60,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       data-theme="dark"
       suppressHydrationWarning
     >
+      <head>
+        <link rel="apple-touch-icon" sizes="180x180" href="assets/meta/apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="assets/meta/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="assets/meta/favicon-16x16.png" />
+      </head>
+
       <body
         className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable}`}
         suppressHydrationWarning
       >
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js'))}`,
+          }}
+        />
         <Providers>
           <Analytics/>
           <SpeedInsights/>

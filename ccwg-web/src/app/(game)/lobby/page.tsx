@@ -80,9 +80,9 @@ const inputClass =
 
 const labelClass = 'block text-xs font-tactical font-bold tracking-wider uppercase text-[var(--text-muted)] mb-1.5';
 
-const Overlay = ({ children }: { children: React.ReactNode }) => (
+const Overlay = ({ children, fullScreenMobile = false }: { children: React.ReactNode; fullScreenMobile?: boolean }) => (
   <motion.div
-    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    className={`fixed inset-0 z-50 flex items-center justify-center ${fullScreenMobile ? 'p-0 sm:p-4' : 'p-4'}`}
     style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
@@ -92,23 +92,39 @@ const Overlay = ({ children }: { children: React.ReactNode }) => (
   </motion.div>
 );
 
+const MODAL_MAX_WIDTHS: Record<string, string> = {
+  'max-w-sm': '24rem',
+  'max-w-md': '28rem',
+  'max-w-lg': '32rem',
+  'max-w-xl': '36rem',
+  'max-w-2xl': '42rem',
+  'max-w-3xl': '48rem',
+  'max-w-4xl': '56rem',
+};
+
 const Modal = ({
   children,
   accent = 'var(--border-accent)',
   maxW = 'max-w-lg',
+  fullScreenMobile = false,
 }: {
   children: React.ReactNode;
   accent?: string;
   maxW?: string;
+  fullScreenMobile?: boolean;
 }) => (
   <motion.div
-    className={`relative w-full ${maxW} rounded-2xl overflow-hidden flex flex-col`}
+    className={`relative w-full overflow-hidden flex flex-col ${
+      fullScreenMobile
+        ? 'modal-fs-wrap h-full rounded-none border-0 sm:h-auto sm:rounded-2xl sm:border sm:max-h-[90vh]'
+        : `${maxW} rounded-2xl`
+    }`}
     style={{
       background: 'var(--bg-panel)',
-      border: `1px solid ${accent}`,
+      border: fullScreenMobile ? undefined : `1px solid ${accent}`,
       backdropFilter: 'blur(20px)',
       boxShadow: `0 0 60px ${accent}44`,
-      maxHeight: '90vh',
+      maxHeight: fullScreenMobile ? undefined : '90vh',
     }}
     initial={{ opacity: 0, scale: 0.95, y: 16 }}
     animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -116,6 +132,10 @@ const Modal = ({
     transition={{ type: 'spring', damping: 22, stiffness: 280 }}
   >
     {children}
+    {/* Inline responsive max-width for fullscreen-mobile modals (Tailwind can't purge dynamic sm: classes) */}
+    {fullScreenMobile && (
+      <style>{`@media(min-width:640px){.modal-fs-wrap{max-width:${MODAL_MAX_WIDTHS[maxW] ?? '32rem'}}}`}</style>
+    )}
   </motion.div>
 );
 
@@ -1302,8 +1322,8 @@ function LobbyContent() {
 
         {/* Bot Selector */}
         {showBotSelector && (
-          <Overlay key="bot-selector">
-            <Modal accent="var(--border-accent)" maxW="max-w-3xl">
+          <Overlay key="bot-selector" fullScreenMobile>
+            <Modal accent="var(--border-accent)" maxW="max-w-3xl" fullScreenMobile>
               <ModalHeader
                 title="Choose Your Bot Rival"
                 subtitle="Select a bot personality to battle"
