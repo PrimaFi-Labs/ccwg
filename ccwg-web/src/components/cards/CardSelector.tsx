@@ -74,7 +74,7 @@ export function CardSelector({
       {/* Overlay */}
       <motion.div
         key="overlay"
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 z-50 flex items-center justify-center sm:p-4"
         style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -96,7 +96,7 @@ export function CardSelector({
             damping: 30,
             mass: 0.9,
           }}
-          className="rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto border border-[var(--border-accent)]"
+          className="flex flex-col w-full h-full max-h-screen overflow-y-auto border-0 sm:rounded-2xl sm:max-w-6xl sm:max-h-[95vh] sm:border sm:border-[var(--border-accent)]"
           style={{
             background: 'var(--bg-panel)',
             boxShadow: '0 0 60px rgba(var(--accent-primary-rgb, 168,85,247), 0.15), 0 25px 50px rgba(0,0,0,0.5)',
@@ -155,7 +155,7 @@ export function CardSelector({
 
           {/* Cards grid */}
           <div className="p-4 md:p-6">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 sm:gap-4">
               {cards.map((card, index) => {
                 const selectedNow = isSelected(card);
                 const selectionIndex = selected.findIndex((c) => c.id === card.id);

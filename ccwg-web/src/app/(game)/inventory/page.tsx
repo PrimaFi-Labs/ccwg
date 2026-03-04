@@ -68,6 +68,23 @@ export default function InventoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
   const [rarityFilter, setRarityFilter] = useState<Rarity | 'All'>('All');
+  const [flippedCardId, setFlippedCardId] = useState<number | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect below-xl viewport for mobile card flip behaviour
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1280);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  const handleCardClick = (cardId: number) => {
+    setSelectedCardId(cardId);
+    if (isMobile) {
+      setFlippedCardId((prev) => (prev === cardId ? null : cardId));
+    }
+  };
 
   useEffect(() => {
     if (!address) return;
@@ -234,27 +251,95 @@ export default function InventoryPage() {
             {/* Card Grid */}
             <motion.div
               layout
-              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+              className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
             >
               <AnimatePresence mode="popLayout">
-                {filtered.map((card) => (
-                  <motion.div
-                    key={card.id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <CardDisplay
-                      card={card}
-                      size="medium"
-                      showStats={true}
-                      selected={selectedCardId === card.id}
-                      onClick={() => setSelectedCardId(card.id)}
-                    />
-                  </motion.div>
-                ))}
+                {filtered.map((card) => {
+                  const isFlipped = isMobile && flippedCardId === card.id;
+                  const rs = card.template?.rarity ? RARITY_STYLES[card.template.rarity] : null;
+                  return (
+                    <motion.div
+                      key={card.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <div style={{ perspective: '1000px' }}>
+                        <div
+                          className="relative transition-transform duration-500"
+                          style={{
+                            transformStyle: 'preserve-3d',
+                            transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                          }}
+                        >
+                          {/* Front face */}
+                          <div style={{ backfaceVisibility: 'hidden' }}>
+                            <CardDisplay
+                              card={card}
+                              size="medium"
+                              showStats={true}
+                              selected={selectedCardId === card.id}
+                              onClick={() => handleCardClick(card.id)}
+                            />
+                          </div>
+                          {/* Back face — card stats (mobile only) */}
+                          <div
+                            className="absolute inset-0 rounded-xl overflow-hidden flex flex-col xl:hidden"
+                            style={{
+                              backfaceVisibility: 'hidden',
+                              transform: 'rotateY(180deg)',
+                              background: 'var(--bg-panel)',
+                              border: `1px solid ${rs?.border ?? 'var(--border-accent)'}`,
+                              boxShadow: rs ? `0 0 20px ${rs.glow}` : '0 0 20px var(--hud-glow)',
+                            }}
+                            onClick={() => setFlippedCardId(null)}
+                          >
+                            <div className="h-1 w-full" style={{ background: rs?.color ?? 'var(--accent-primary)' }} />
+                            <div className="flex-1 p-3 flex flex-col">
+                              <div className="mb-2">
+                                <h3 className="font-display text-sm font-bold text-[var(--text-primary)] truncate">
+                                  {card.template?.name}
+                                </h3>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className="text-[10px] text-[var(--text-muted)]">{card.template?.asset}</span>
+                                  <span
+                                    className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase"
+                                    style={{ color: rs?.color, background: rs?.glow ?? 'var(--bg-tertiary)' }}
+                                  >
+                                    {card.template?.rarity}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="space-y-2 flex-1">
+                                {STAT_BARS.map(({ key, label, icon, color }) => (
+                                  <StatBar
+                                    key={key}
+                                    label={label}
+                                    icon={icon}
+                                    value={(card.template as unknown as Record<string, number>)?.[key] ?? 0}
+                                    color={color}
+                                  />
+                                ))}
+                              </div>
+                              <div className="mt-2 pt-2 border-t border-[var(--border-base)]">
+                                <p className="text-[10px] text-[var(--text-secondary)] truncate">
+                                  ⚡ {abilityLabel(card.template?.ability_id)}
+                                </p>
+                                <div className="flex items-center justify-between mt-0.5">
+                                  <span className="text-[10px] text-[var(--text-muted)]">Lv.{card.level}</span>
+                                  <span className="text-[10px] text-[var(--text-muted)]">{card.merge_count} merges</span>
+                                </div>
+                                <p className="text-[9px] text-[var(--text-muted)] text-center mt-1.5 opacity-50">Tap to flip back</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </AnimatePresence>
               {filtered.length === 0 && (
                 <div className="col-span-full py-12 text-center text-[var(--text-muted)] text-sm">
@@ -263,9 +348,9 @@ export default function InventoryPage() {
               )}
             </motion.div>
 
-            {/* Detail Panel */}
+            {/* Detail Panel — desktop only (mobile uses card flip) */}
             <div
-              className="xl:sticky xl:top-20 rounded-2xl border overflow-hidden"
+              className="hidden xl:block xl:sticky xl:top-20 self-start rounded-2xl border overflow-hidden"
               style={{
                 background: 'var(--bg-panel)',
                 backdropFilter: 'blur(16px)',

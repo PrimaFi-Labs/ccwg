@@ -100,6 +100,9 @@ export function GameHeader() {
 
   const themeLabel = THEME_OPTIONS.find((t) => t.value === theme)?.label ?? 'Theme';
 
+  // Hide header during active matches for fullscreen arena
+  if (pathname.startsWith('/match/') && !pathname.includes('/results')) return null;
+
   return (
     <header
       className="sticky top-0 z-50 w-full hud-flicker"

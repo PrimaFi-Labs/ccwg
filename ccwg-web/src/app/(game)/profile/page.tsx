@@ -201,7 +201,7 @@ export default function ProfilePage() {
 
             <div className="flex-1 min-w-0">
               {/* Username */}
-              <h1 className="font-display text-3xl md:text-4xl font-black tracking-widest uppercase text-[var(--text-primary)] truncate">
+              <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-black tracking-widest uppercase text-[var(--text-primary)] truncate max-w-full break-all leading-tight">
                 {loading ? '…' : username ?? 'Unnamed'}
               </h1>
 

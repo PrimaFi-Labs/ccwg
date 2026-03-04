@@ -15,6 +15,9 @@ const NAV_ITEMS = [
 export function MobileBottomNav() {
   const pathname = usePathname();
 
+  // Hide nav during active matches for fullscreen arena
+  if (pathname.startsWith('/match/')) return null;
+
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
 

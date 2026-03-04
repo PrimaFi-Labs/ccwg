@@ -28,7 +28,7 @@ export function CardDisplay({
 }: CardDisplayProps) {
   const sizeClasses = {
     small: 'w-32 h-44',
-    medium: 'w-48 h-64',
+    medium: 'w-full aspect-[3/4] sm:w-48 sm:h-64 sm:aspect-auto',
     large: 'w-64 h-88',
   };
 

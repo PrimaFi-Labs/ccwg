@@ -14,7 +14,7 @@ import type { Match, PlayerCard, PlayerAction, CardAsset, BotCard } from '@/src/
 import { generateNonce } from '@/src/lib/cartridge/utils';
 import { getChallengeSwapLimit } from '@/src/lib/social/shared';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Sword, Crown, Shield, Zap, Wifi, WifiOff } from 'lucide-react';
+import { Swords, Sword, Crown, Shield, Zap, Wifi, WifiOff, LogOut } from 'lucide-react';
 
 /* ─── helpers ─── */
 
@@ -29,6 +29,17 @@ function haptic(pattern: number | number[]) {
       navigator.vibrate(pattern);
     }
   } catch { /* non-critical */ }
+}
+
+/** Format a price string for compact display (e.g. "96432.15" → "$96.4K", "0.1234" → "$0.1234") */
+function formatPrice(raw: string): string {
+  const n = parseFloat(raw);
+  if (isNaN(n)) return `$${raw}`;
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 10_000) return `$${(n / 1_000).toFixed(1)}K`;
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(2)}K`;
+  if (n >= 1) return `$${n.toFixed(2)}`;
+  return `$${n.toFixed(4)}`;
 }
 
 /* ─── types ─── */
@@ -496,6 +507,18 @@ export function MatchArena({
     !actionLocked &&
     opponentCardReady &&
     (roundStarter === 'You' || Boolean(opponentAction));
+  const [forfeitConfirm, setForfeitConfirm] = useState(false);
+
+  const handleForfeit = useCallback(async () => {
+    try {
+      await fetch(`/api/matches/${match.match_id}/forfeit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wallet_address: playerWallet }),
+      });
+    } catch { /* best-effort */ }
+    router.push(`/match/${match.match_id}/results`);
+  }, [match.match_id, playerWallet, router]);
   const yourTimerPaused =
     isVsAI || !isConnected || showSnapshotDisplay || isResolving || actionLocked || !opponentCardReady || (!isFirstMover && !opponentAction);
   const opponentTimerPaused =
@@ -567,7 +590,7 @@ export function MatchArena({
 
               {roundPrices && (
                 <motion.div
-                  className="grid grid-cols-5 gap-2 max-w-lg mx-auto"
+                  className="grid grid-cols-3 sm:grid-cols-5 gap-2 max-w-lg mx-auto"
                   initial={{ y: 10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.15 }}
@@ -582,7 +605,7 @@ export function MatchArena({
                       transition={{ delay: 0.2 + i * 0.08 }}
                     >
                       <div className="text-[10px] text-[var(--text-muted)] uppercase">{asset}</div>
-                      <div className="font-semibold text-sm text-[var(--text-primary)]">${price}</div>
+                      <div className="font-semibold text-sm text-[var(--text-primary)]">{formatPrice(price)}</div>
                     </motion.div>
                   ))}
                 </motion.div>
@@ -633,17 +656,27 @@ export function MatchArena({
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              {isConnected ? (
-                <Wifi className="w-4 h-4 text-emerald-400" />
-              ) : (
-                <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1, repeat: Infinity }}>
-                  <WifiOff className="w-4 h-4 text-red-400" />
-                </motion.div>
-              )}
-              <span className="text-xs text-[var(--text-muted)] hidden sm:inline">
-                {isConnected ? 'Live' : 'Reconnecting'}
-              </span>
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => setForfeitConfirm(true)}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors border border-red-500/30 text-red-400 hover:bg-red-500/10"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Quit</span>
+              </button>
+
+              <div className="flex items-center gap-1.5">
+                {isConnected ? (
+                  <Wifi className="w-4 h-4 text-emerald-400" />
+                ) : (
+                  <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1, repeat: Infinity }}>
+                    <WifiOff className="w-4 h-4 text-red-400" />
+                  </motion.div>
+                )}
+                <span className="text-xs text-[var(--text-muted)] hidden sm:inline">
+                  {isConnected ? 'Live' : 'Reconnecting'}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -789,7 +822,7 @@ export function MatchArena({
             style={{ background: 'var(--bg-secondary)' }}
           >
             <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-2">Round Snapshot</h3>
-            <div className="grid grid-cols-5 gap-1.5 text-sm">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 text-sm">
               {Object.entries(roundPrices).map(([asset, price]) => (
                 <div
                   key={asset}
@@ -797,7 +830,7 @@ export function MatchArena({
                   style={{ background: 'var(--bg-tertiary)' }}
                 >
                   <div className="text-[9px] text-[var(--text-muted)] uppercase">{asset}</div>
-                  <div className="font-semibold text-xs text-[var(--text-primary)]">${price}</div>
+                  <div className="font-semibold text-xs text-[var(--text-primary)]">{formatPrice(price)}</div>
                 </div>
               ))}
             </div>
@@ -1022,6 +1055,46 @@ export function MatchArena({
       </div>
 
       {/* Round Result Overlay */}
+      <AnimatePresence>
+        {forfeitConfirm && (
+          <motion.div
+            key="forfeit-confirm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="w-full max-w-sm rounded-xl border border-red-500/30 p-6 text-center"
+              style={{ background: 'var(--bg-panel)' }}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+            >
+              <LogOut className="w-10 h-10 text-red-400 mx-auto mb-3" />
+              <h2 className="text-xl font-bold text-[var(--text-primary)] mb-2">Forfeit Match?</h2>
+              <p className="text-sm text-[var(--text-muted)] mb-5">
+                Your opponent will be awarded the remaining rounds. This cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setForfeitConfirm(false)}
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-[var(--border-base)] text-[var(--text-primary)] font-medium hover:bg-[var(--bg-secondary)] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleForfeit}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-red-500/20 border border-red-500/40 text-red-400 font-bold hover:bg-red-500/30 transition-colors"
+                >
+                  Forfeit
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {roundLogVisible && (
           <motion.div
