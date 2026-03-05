@@ -442,6 +442,7 @@ export type Database = {
           cards_granted: number | null
           created_at: string | null
           description: string | null
+          expires_at: string | null
           guaranteed_cards: Json | null
           image_url: string | null
           is_active: boolean | null
@@ -458,6 +459,7 @@ export type Database = {
           cards_granted?: number | null
           created_at?: string | null
           description?: string | null
+          expires_at?: string | null
           guaranteed_cards?: Json | null
           image_url?: string | null
           is_active?: boolean | null
@@ -474,6 +476,7 @@ export type Database = {
           cards_granted?: number | null
           created_at?: string | null
           description?: string | null
+          expires_at?: string | null
           guaranteed_cards?: Json | null
           image_url?: string | null
           is_active?: boolean | null
