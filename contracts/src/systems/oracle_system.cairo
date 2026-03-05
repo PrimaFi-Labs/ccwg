@@ -55,9 +55,9 @@ pub mod oracle_system {
     use dojo::model::ModelStorage;
     use dojo::event::EventStorage;
 
-    //==================================================================================================================
-    //const USE_MOCK_ORACLE: bool = false; set to false when Pragma is live and reliable, true for testing and fallback
-    //==================================================================================================================
+    //=============================================================================================================================================
+    //const USE_MOCK_ORACLE: bool = false; set to false when Pragma is live and reliable, true for testing and fallback || Sepolia oracle is stale.
+    //=============================================================================================================================================
 
     const USE_MOCK_ORACLE: bool = true;
     

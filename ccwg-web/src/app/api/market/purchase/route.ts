@@ -119,24 +119,32 @@ function distributeCards(
   const randomPool = possibleCards?.filter((id) => !guaranteedCards?.includes(id)) || possibleCards || [];
   if (randomPool.length === 0) return result;
 
+  // Use a shrinking pool to avoid duplicate template IDs in one pack.
+  // If the pool runs out before we fill all slots, reset it (allow repeats).
+  let availablePool = [...randomPool];
+
   if (cardWeights && Object.keys(cardWeights).length > 0) {
-    const totalWeight = Object.values(cardWeights).reduce((sum, w) => sum + w, 0);
     for (let i = 0; i < remainingCount; i += 1) {
-      let random = Math.random() * totalWeight;
-      for (const [templateIdStr, weight] of Object.entries(cardWeights)) {
-        const templateId = Number.parseInt(templateIdStr, 10);
-        if (!randomPool.includes(templateId)) continue;
+      if (availablePool.length === 0) availablePool = [...randomPool];
+      const poolWeight = availablePool.reduce((sum, id) => sum + (cardWeights[String(id)] ?? 1), 0);
+      let random = Math.random() * poolWeight;
+      for (let j = 0; j < availablePool.length; j += 1) {
+        const templateId = availablePool[j];
+        const weight = cardWeights[String(templateId)] ?? 1;
         random -= weight;
         if (random <= 0) {
           result.push(templateId);
+          availablePool.splice(j, 1);
           break;
         }
       }
     }
   } else {
     for (let i = 0; i < remainingCount; i += 1) {
-      const randomIndex = Math.floor(Math.random() * randomPool.length);
-      result.push(randomPool[randomIndex]);
+      if (availablePool.length === 0) availablePool = [...randomPool];
+      const randomIndex = Math.floor(Math.random() * availablePool.length);
+      result.push(availablePool[randomIndex]);
+      availablePool.splice(randomIndex, 1);
     }
   }
 

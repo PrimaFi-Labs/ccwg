@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
         possible_cards: validated.possible_cards || null,
         per_wallet_limit: validated.per_wallet_limit ?? null,
         image_url: validated.image_public_id 
-          ? `ccwg/market/${validated.image_public_id}`
+          ? `${validated.image_public_id}`
           : null,
         is_active: true,
       }) as any)

@@ -167,7 +167,6 @@ export function LandingFooter() {
               </a>
             </p>
           </div>
-          </p>
         </div>
       </div>
     </footer>

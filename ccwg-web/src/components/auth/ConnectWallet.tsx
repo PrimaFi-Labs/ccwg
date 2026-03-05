@@ -6,7 +6,19 @@ import { useEffect, useMemo, useRef, useState, useLayoutEffect, useCallback } fr
 import { useAccount, useConnect, useDisconnect } from '@starknet-react/core';
 import { ControllerConnector } from '@cartridge/connector';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wallet, LogOut, User, RefreshCw, AlertCircle } from 'lucide-react';
+import { LogOut, User, RefreshCw, AlertCircle } from 'lucide-react';
+
+/** Cartridge controller "C" logomark — 20×20 inline SVG so no external asset is needed. */
+function CartridgeIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-5.1-3.6H13v2.5h2.9v2.2H13v2.5h2.9v1.2a.2.2 0 0 1-.2.2h-6a.2.2 0 0 1-.2-.2V7.2c0-.11.09-.2.2-.2h6c.11 0 .2.09.2.2v1.2Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
 import { useAuthSession } from '@/src/hooks/useAuthSession';
 
 const LAST_CONNECTOR_KEY = 'ccwg:last_starknet_connector';
@@ -241,21 +253,23 @@ export function ConnectWallet({ compact = false }: ConnectWalletProps) {
     if (compact) {
       return (
         <div className="flex items-center gap-2 px-3 py-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
-          <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+          <CartridgeIcon className="w-3 h-3 animate-spin" />
           {loadingLabel}
         </div>
       );
     }
     return (
       <div className="flex flex-col items-end gap-2">
-        <button
+        <motion.button
           disabled
+          animate={{ boxShadow: ['0 0 12px var(--accent-primary-glow)', '0 0 28px var(--accent-primary-glow)', '0 0 12px var(--accent-primary-glow)'] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
           className="px-6 py-3 rounded-xl flex items-center gap-2 font-medium text-sm"
-          style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--border-base)' }}
+          style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--accent-primary)' }}
         >
-          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          <CartridgeIcon className="w-4 h-4 animate-spin" />
           {loadingLabel}
-        </button>
+        </motion.button>
         {signingMessage && (
           <p className="text-xs max-w-xs text-center" style={{ color: 'var(--accent-orange, #f59e0b)' }}>
             A Cartridge sign popup should appear. If nothing opened, check for a blocked popup or refresh the page.
@@ -386,7 +400,7 @@ export function ConnectWallet({ compact = false }: ConnectWalletProps) {
         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-tertiary)'; }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
       >
-        <Wallet className="w-4 h-4 shrink-0" />
+        <CartridgeIcon className="w-4 h-4 shrink-0" />
         Connect Wallet
       </button>
     );
@@ -430,9 +444,9 @@ export function ConnectWallet({ compact = false }: ConnectWalletProps) {
           />
         )}
         {(pendingConnect || isWarmingUp) ? (
-          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin relative z-10" />
+          <CartridgeIcon className="w-4 h-4 animate-spin relative z-10" />
         ) : (
-          <Wallet className="w-4 h-4 relative z-10" />
+          <CartridgeIcon className="w-5 h-5 relative z-10" />
         )}
         <span className="relative z-10">{btnLabel}</span>
       </motion.button>
