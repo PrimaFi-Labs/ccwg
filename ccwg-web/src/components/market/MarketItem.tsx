@@ -3,9 +3,22 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { OptimizedImage } from '@/src/components/ui/OptimizedImage';
-import { ShoppingCart, Zap, Gift, Package, Layers, Flame, Lock } from 'lucide-react';
+import { ShoppingCart, Zap, Gift, Package, Layers, Flame, Lock, Clock } from 'lucide-react';
 import type { MarketItem } from '@/src/types/database';
 import { formatStrk } from '@/src/lib/cartridge/utils';
+
+/** Human-readable countdown string, e.g. "2d 5h" or "3h 12m" or "< 1m". */
+function formatTimeLeft(expiresAt: string): string {
+  const diff = new Date(expiresAt).getTime() - Date.now();
+  if (diff <= 0) return 'Expired';
+  const d = Math.floor(diff / 86_400_000);
+  const h = Math.floor((diff % 86_400_000) / 3_600_000);
+  const m = Math.floor((diff % 3_600_000) / 60_000);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m`;
+  return '< 1m';
+}
 
 interface MarketItemProps {
   item: MarketItem;
@@ -21,8 +34,9 @@ export function MarketItem({ item, onPurchase, isPurchasing = false }: MarketIte
   const isPack          = item.item_type === 'pack';
   const hasGuaranteed   = (item.guaranteed_cards?.length ?? 0) > 0;
   const hasLimit        = typeof item.per_wallet_limit === 'number' && item.per_wallet_limit > 0;
+  const isExpired       = !!item.expires_at && new Date(item.expires_at) <= new Date();
   const purchasesCount  = item.purchases_count ?? 0;
-  const soldOut         = hasLimit && item.per_wallet_limit! <= purchasesCount;
+  const soldOut         = (hasLimit && item.per_wallet_limit! <= purchasesCount) || isExpired;
 
   // Per-type accent
   const accent = isFree ? '#4ade80' : isPack ? 'var(--accent-orange)' : 'var(--accent-primary)';
@@ -112,6 +126,17 @@ export function MarketItem({ item, onPurchase, isPurchasing = false }: MarketIte
             </span>
           </div>
         )}
+
+        {/* Expiration countdown */}
+        {item.expires_at && !isExpired && (
+          <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full backdrop-blur-sm"
+            style={{ background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(251,146,60,0.4)' }}>
+            <Clock className="w-3 h-3 text-orange-400" />
+            <span className="text-[10px] font-tactical font-bold text-orange-400">
+              {formatTimeLeft(item.expires_at)}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Details */}
@@ -195,6 +220,8 @@ export function MarketItem({ item, onPurchase, isPurchasing = false }: MarketIte
           >
             {isPurchasing ? (
               <div className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+            ) : isExpired ? (
+              <><Clock className="w-4 h-4" /> Expired</>
             ) : soldOut ? (
               <><Lock className="w-4 h-4" /> Limit Reached</>
             ) : isFree ? (

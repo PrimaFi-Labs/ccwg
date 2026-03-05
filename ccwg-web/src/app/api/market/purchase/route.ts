@@ -192,6 +192,12 @@ export async function POST(request: NextRequest) {
       console.error('[API/purchase] Item not found. itemError:', itemError, 'item_id:', item_id);
       return NextResponse.json({ error: 'Item not found or inactive' }, { status: 404 });
     }
+
+    // Reject purchase if item has expired
+    if (item.expires_at && new Date(item.expires_at) <= new Date()) {
+      console.error('[API/purchase] Item expired:', item.expires_at);
+      return NextResponse.json({ error: 'This item has expired' }, { status: 410 });
+    }
     console.log('[API/purchase] Item found:', item.name, 'price:', item.price_strk, 'cards_granted:', item.cards_granted);
 
     if (item.per_wallet_limit && item.per_wallet_limit > 0) {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { AdminNav } from '@/src/components/admin/AdminNav';
-import { Plus, Edit, Eye, EyeOff, Package } from 'lucide-react';
+import { Plus, Edit, Eye, EyeOff, Package, Clock } from 'lucide-react';
 import { CreateMarketItemForm } from '@/src/components/admin/CreateMarketItemForm';
 import type { MarketItem, CardTemplate } from '@/src/types/database';
 import { formatStrk } from '@/src/lib/cartridge/utils';
@@ -119,6 +119,7 @@ export default function AdminMarketPage() {
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Type</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Price</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Cards</th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Expires</th>
                 <th className="px-6 py-4 text-center text-sm font-semibold text-gray-300">Status</th>
                 <th className="px-6 py-4 text-right text-sm font-semibold text-gray-300">Actions</th>
               </tr>
@@ -148,6 +149,22 @@ export default function AdminMarketPage() {
                   </td>
                   <td className="px-6 py-4 text-gray-300">
                     {item.cards_granted} card{item.cards_granted > 1 ? 's' : ''}
+                  </td>
+                  <td className="px-6 py-4">
+                    {item.expires_at ? (
+                      (() => {
+                        const exp = new Date(item.expires_at);
+                        const isExpired = exp <= new Date();
+                        return (
+                          <span className={`flex items-center gap-1.5 text-xs font-semibold ${isExpired ? 'text-red-400' : 'text-yellow-400'}`}>
+                            <Clock className="w-3.5 h-3.5" />
+                            {isExpired ? 'Expired' : exp.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        );
+                      })()
+                    ) : (
+                      <span className="text-xs text-gray-500">Never</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-center">
                     <button

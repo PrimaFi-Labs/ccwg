@@ -7,6 +7,8 @@ type LeaderboardRow = {
   stark_points: number;
 };
 
+const BOT_WALLET = '0x4149';
+
 async function computeRank(
   supabase: Awaited<ReturnType<typeof createClient>>,
   walletAddress: string,
@@ -16,10 +18,12 @@ async function computeRank(
     supabase
       .from('players')
       .select('*', { count: 'exact', head: true })
+      .neq('wallet_address', BOT_WALLET)
       .gt('stark_points', starkPoints),
     supabase
       .from('players')
       .select('*', { count: 'exact', head: true })
+      .neq('wallet_address', BOT_WALLET)
       .eq('stark_points', starkPoints)
       .lt('wallet_address', walletAddress),
   ]);
@@ -49,6 +53,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('players')
       .select('wallet_address, username, stark_points')
+      .neq('wallet_address', BOT_WALLET)
       .order('stark_points', { ascending: false })
       .order('wallet_address', { ascending: true });
 

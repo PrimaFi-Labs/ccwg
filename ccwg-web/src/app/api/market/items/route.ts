@@ -16,10 +16,12 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
 
+    const now = new Date().toISOString();
     const { data: items, error } = await supabase
       .from('market_items')
       .select('*')
       .eq('is_active', true)
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -95,6 +97,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Compute expires_at from optional duration_hours
+    const expiresAt = validated.duration_hours
+      ? new Date(Date.now() + validated.duration_hours * 3600_000).toISOString()
+      : null;
+
     const { data: item, error } = await supabase
       .from('market_items')
       .insert(({
@@ -105,6 +112,7 @@ export async function POST(request: NextRequest) {
         cards_granted: validated.cards_granted,
         possible_cards: validated.possible_cards || null,
         per_wallet_limit: validated.per_wallet_limit ?? null,
+        expires_at: expiresAt,
         image_url: validated.image_public_id 
           ? `${validated.image_public_id}`
           : null,

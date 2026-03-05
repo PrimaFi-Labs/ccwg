@@ -202,6 +202,7 @@ export interface MarketItem {
   reveal_animation: boolean; // Whether to show card flip animation
   is_active: boolean;
   per_wallet_limit?: number | null;
+  expires_at?: string | null; // ISO timestamp; NULL = never expires
   purchases_count?: number;
   created_at: string;
 }

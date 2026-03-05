@@ -29,6 +29,7 @@ export function CreateMarketItemForm({ onSuccess, cardTemplates }: CreateMarketI
   const [revealAnimation, setRevealAnimation] = useState(true);
   const [imagePublicId, setImagePublicId] = useState('');
   const [perWalletLimit, setPerWalletLimit] = useState<string>('');
+  const [durationHours, setDurationHours] = useState<string>('');
   const [singleCardId, setSingleCardId] = useState<number | ''>('');
 
   const handleAddPossibleCard = (templateId: number) => {
@@ -98,6 +99,7 @@ export function CreateMarketItemForm({ onSuccess, cardTemplates }: CreateMarketI
         guaranteed_cards: guaranteedCards.length > 0 ? guaranteedCards : null,
         card_weights: Object.keys(cardWeights).length > 0 ? cardWeights : null,
         per_wallet_limit: perWalletLimit ? parseInt(perWalletLimit) : null,
+        duration_hours: durationHours ? parseInt(durationHours) : null,
         image_public_id: imagePublicId || null,
         reveal_animation: revealAnimation,
       };
@@ -126,6 +128,7 @@ export function CreateMarketItemForm({ onSuccess, cardTemplates }: CreateMarketI
       setCardWeights({});
       setImagePublicId('');
       setPerWalletLimit('');
+      setDurationHours('');
       setSingleCardId('');
       
     } catch (err: any) {
@@ -415,6 +418,39 @@ export function CreateMarketItemForm({ onSuccess, cardTemplates }: CreateMarketI
           className="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none"
         />
         <p className="text-xs text-gray-500 mt-1">Leave empty for unlimited purchases.</p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-gray-300 mb-2">
+          Duration (hours, optional)
+        </label>
+        <div className="flex gap-3">
+          <input
+            type="number"
+            min="1"
+            value={durationHours}
+            onChange={(e) => setDurationHours(e.target.value)}
+            placeholder="e.g. 24, 72, 168"
+            className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none"
+          />
+          <div className="flex gap-1">
+            {[24, 48, 72, 168].map((h) => (
+              <button
+                key={h}
+                type="button"
+                onClick={() => setDurationHours(String(h))}
+                className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                  durationHours === String(h)
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                }`}
+              >
+                {h < 48 ? `${h}h` : `${h / 24}d`}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="text-xs text-gray-500 mt-1">Leave empty for items that never expire.</p>
       </div>
 
       {/* Submit */}

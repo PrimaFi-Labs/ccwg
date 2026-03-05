@@ -178,6 +178,7 @@ export const createMarketItemSchema = z.object({
   guaranteed_cards: z.array(z.number().int()).optional().nullable(),
   card_weights: z.record(z.string(), z.number()).optional().nullable(),
   per_wallet_limit: z.number().int().min(1).max(999).optional().nullable(),
+  duration_hours: z.number().int().min(1).optional().nullable(),
   image_public_id: z.string().optional(),
   reveal_animation: z.boolean().default(true),
 }).refine(
