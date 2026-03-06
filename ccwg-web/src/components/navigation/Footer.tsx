@@ -18,7 +18,7 @@ export function Footer() {
             </p>
             <div className="flex gap-3">
               <a
-                href="https://twitter.com/cryptocardwarx"
+                href="https://x.com/cryptocardwarx"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
@@ -69,9 +69,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">
+                <Link href="/how-to-play" className="text-gray-400 hover:text-white text-sm transition-colors">
                   How to Play
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

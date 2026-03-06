@@ -1343,30 +1343,37 @@ function LobbyContent() {
                 <div className="grid md:grid-cols-2 gap-3">
                   {bots.map((bot) => {
                     const isEVE = bot.name === 'E.V.E';
-                    const diffColor = isEVE ? '#a855f7' : bot.difficulty === 'Hard' ? '#f87171' : bot.difficulty === 'Medium' ? '#f59e0b' : 'var(--accent-primary)';
+                    const isLitTrader = bot.name === 'Lit Trader';
+                    const isSpecial = isEVE || isLitTrader;
+                    const diffColor = isEVE ? '#a855f7' : isLitTrader ? '#f59e0b' : bot.difficulty === 'Hard' ? '#f87171' : bot.difficulty === 'Medium' ? '#f59e0b' : 'var(--accent-primary)';
+                    const specialBorderColor = isEVE ? '#a855f740' : isLitTrader ? '#f59e0b40' : 'var(--border-base)';
                     return (
                       <motion.button
                         key={bot.bot_id}
                         onClick={() => { setSelectedBot(bot); setShowBotSelector(false); setShowDeckSelector(true); }}
                         whileHover={{ y: -2 }}
                         whileTap={{ scale: 0.98 }}
-                        className={`text-left rounded-xl border p-4 space-y-2 transition ${isEVE ? 'md:col-span-2 relative overflow-hidden' : ''}`}
+                        className={`text-left rounded-xl border p-4 space-y-2 transition ${isEVE ? 'md:col-span-2 relative overflow-hidden' : isLitTrader ? 'relative overflow-hidden' : ''}`}
                         style={{
-                          background: isEVE ? 'linear-gradient(135deg, rgba(168,85,247,0.08), rgba(59,130,246,0.08))' : 'var(--bg-secondary)',
-                          borderColor: isEVE ? '#a855f740' : 'var(--border-base)',
+                          background: isEVE ? 'linear-gradient(135deg, rgba(168,85,247,0.08), rgba(59,130,246,0.08))' : isLitTrader ? 'linear-gradient(135deg, rgba(245,158,11,0.08), rgba(234,179,8,0.06))' : 'var(--bg-secondary)',
+                          borderColor: specialBorderColor,
                         }}
                         onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = diffColor; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = isEVE ? '#a855f740' : 'var(--border-base)'; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = specialBorderColor; }}
                       >
                         {isEVE && (
                           <div className="absolute top-0 right-0 w-32 h-32 opacity-[0.07] pointer-events-none"
                             style={{ background: 'radial-gradient(circle, #a855f7 0%, transparent 70%)' }} />
                         )}
+                        {isLitTrader && (
+                          <div className="absolute top-0 right-0 w-24 h-24 opacity-[0.07] pointer-events-none"
+                            style={{ background: 'radial-gradient(circle, #f59e0b 0%, transparent 70%)' }} />
+                        )}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            {isEVE && bot.avatar_url ? (
-                              <div className="w-10 h-10 rounded-lg overflow-hidden ring-2 ring-purple-500/40 flex-shrink-0">
-                                <Image src={bot.avatar_url} alt="E.V.E" width={40} height={40} className="w-full h-full object-cover" />
+                            {bot.avatar_url ? (
+                              <div className={`w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 ${isEVE ? 'ring-2 ring-purple-500/40' : isLitTrader ? 'ring-2 ring-amber-500/40' : 'ring-1 ring-white/10'}`}>
+                                <Image src={bot.avatar_url} alt={bot.name} width={40} height={40} className="w-full h-full object-cover" priority />
                               </div>
                             ) : (
                               <div className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -1383,6 +1390,11 @@ function LobbyContent() {
                                   Enhanced Virtual Entity
                                 </span>
                               )}
+                              {isLitTrader && (
+                                <span className="text-[9px] font-tactical tracking-[0.2em] uppercase text-amber-400/80">
+                                  Cautious Conservative Trader
+                                </span>
+                              )}
                             </div>
                           </div>
                           <span className="text-[9px] font-tactical font-bold tracking-[0.15em] uppercase px-2 py-0.5 rounded-full"
@@ -1390,10 +1402,10 @@ function LobbyContent() {
                             {isEVE ? 'Legendary' : bot.difficulty}
                           </span>
                         </div>
-                        <p className={`text-xs leading-relaxed ${isEVE ? 'text-purple-300/70' : 'text-[var(--text-muted)]'}`}>
+                        <p className={`text-xs leading-relaxed ${isEVE ? 'text-purple-300/70' : isLitTrader ? 'text-amber-300/70' : 'text-[var(--text-muted)]'}`}>
                           {bot.description || 'Unpredictable and relentless.'}
                         </p>
-                        {!isEVE && bot.preferred_assets && bot.preferred_assets.length > 0 && (
+                        {!isSpecial && bot.preferred_assets && bot.preferred_assets.length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
                             {bot.preferred_assets.map((asset) => (
                               <span key={asset} className="px-2 py-0.5 rounded-full text-[10px] text-[var(--text-muted)] border border-[var(--border-base)] bg-[var(--bg-tertiary)]">
@@ -1415,6 +1427,19 @@ function LobbyContent() {
                             </span>
                             <span className="px-2 py-0.5 rounded-full text-[10px] text-purple-300/80 border border-purple-500/20 bg-purple-500/10">
                               Dynamic Deck
+                            </span>
+                          </div>
+                        )}
+                        {isLitTrader && (
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] text-amber-300/80 border border-amber-500/20 bg-amber-500/10">
+                              BTC Focused
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] text-amber-300/80 border border-amber-500/20 bg-amber-500/10">
+                              Defense Heavy
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] text-amber-300/80 border border-amber-500/20 bg-amber-500/10">
+                              Low Risk
                             </span>
                           </div>
                         )}

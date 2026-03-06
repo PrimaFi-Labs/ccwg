@@ -6,7 +6,7 @@ import { useRef, useState, useEffect } from 'react';
 import { motion, useInView, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import {
   ChevronDown, Swords, Zap, TrendingUp, Shield, Star, Users, Trophy,
-  Play, ArrowRight, Clock, Coins,
+  Play, ArrowRight, Clock, Coins, BookOpen,
 } from 'lucide-react';
 
 const stagger = (i: number) => ({
@@ -368,6 +368,120 @@ export default function LandingPage() {
                 </div>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── How to Play: Combat Resolution ── */}
+      <section id="how-to-play" className="py-24 px-5" style={{ background: 'linear-gradient(180deg, #0d1428 0%, #090d1a 50%, #0d1428 100%)' }}>
+        <div className="mx-auto max-w-screen-xl">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }} className="text-center mb-14">
+            <p className="font-display text-xs font-bold tracking-[0.25em] uppercase mb-3" style={{ color: '#8b5cf6' }}>How to Play</p>
+            <h2 className="font-display font-black uppercase leading-tight" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', color: '#f8fafc' }}>
+              Combat Resolution<br /><span style={{ color: '#8b5cf6' }}>Explained</span>
+            </h2>
+          </motion.div>
+
+          {/* Action outcomes grid */}
+          <div className="grid md:grid-cols-2 gap-6 mb-12">
+            {[
+              {
+                title: 'Attack vs Attack',
+                desc: 'Both players deal damage. The card with higher base power and favorable momentum deals more. Positive momentum amplifies your attack by card affinity — the bigger the price swing, the bigger the hit.',
+                icon: Swords,
+                color: '#ef4444',
+              },
+              {
+                title: 'Attack vs Defend',
+                desc: 'The attacker deals reduced damage — the defender absorbs a portion based on their defense affinity. If momentum is negative, the defender takes even less. A well-timed Defend can neutralize a big Attack.',
+                icon: Shield,
+                color: '#06d6a0',
+              },
+              {
+                title: 'Defend vs Defend',
+                desc: 'Both players take minimal damage. Neither gains an advantage. This usually happens when both players are cautious — the round is effectively a draw with very low damage exchanged.',
+                icon: Shield,
+                color: '#8b5cf6',
+              },
+              {
+                title: 'Charge (Ability)',
+                desc: 'Activates your card\'s unique ability for the following rounds. Each card has one ability (e.g., Halving Pressure, ZK Cloak, Desync). You only get ONE Charge per match — timing is everything.',
+                icon: Zap,
+                color: '#f97316',
+              },
+            ].map((item, i) => (
+              <motion.div key={item.title} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: i * 0.08 }}
+                className="p-6 rounded-lg"
+                style={{ background: 'rgba(15,22,41,0.8)', border: `1px solid ${item.color}20` }}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded flex items-center justify-center" style={{ background: `${item.color}12`, border: `1px solid ${item.color}30` }}>
+                    <item.icon className="w-5 h-5" style={{ color: item.color }} />
+                  </div>
+                  <h3 className="font-display font-bold text-sm uppercase tracking-wider" style={{ color: '#f8fafc' }}>{item.title}</h3>
+                </div>
+                <p className="text-sm leading-relaxed" style={{ color: 'rgba(148,163,184,0.8)', fontFamily: "'Rajdhani', sans-serif", fontWeight: 500 }}>{item.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Card stats & momentum explanation */}
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}
+              className="p-6 rounded-lg" style={{ background: 'rgba(15,22,41,0.6)', border: '1px solid rgba(139,92,246,0.15)' }}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <Star className="w-5 h-5" style={{ color: '#8b5cf6' }} />
+                <h3 className="font-display font-bold text-sm uppercase tracking-wider" style={{ color: '#f8fafc' }}>Card Stats (Intel)</h3>
+              </div>
+              <div className="space-y-3 text-sm" style={{ color: 'rgba(148,163,184,0.8)', fontFamily: "'Rajdhani', sans-serif", fontWeight: 500 }}>
+                <p><span style={{ color: '#f8fafc' }}>Base Power</span> — The raw damage output of a card. Higher base = more damage per round.</p>
+                <p><span style={{ color: '#ef4444' }}>Attack Affinity</span> — How much the card benefits from positive momentum when attacking. A 1.2× affinity means 20% bonus scaling.</p>
+                <p><span style={{ color: '#06d6a0' }}>Defense Affinity</span> — How well the card absorbs damage when defending. Higher values reduce more incoming damage.</p>
+                <p><span style={{ color: '#f97316' }}>Volatility Sensitivity</span> — How reactive the card is to price swings. High-volatility cards (like BTC) swing harder in both directions.</p>
+              </div>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}
+              className="p-6 rounded-lg" style={{ background: 'rgba(15,22,41,0.6)', border: '1px solid rgba(249,115,22,0.15)' }}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="w-5 h-5" style={{ color: '#f97316' }} />
+                <h3 className="font-display font-bold text-sm uppercase tracking-wider" style={{ color: '#f8fafc' }}>How Momentum Works</h3>
+              </div>
+              <div className="space-y-3 text-sm" style={{ color: 'rgba(148,163,184,0.8)', fontFamily: "'Rajdhani', sans-serif", fontWeight: 500 }}>
+                <p>Between rounds, the server captures a <span style={{ color: '#f8fafc' }}>live price snapshot</span> from oracles. The change from the previous snapshot is the momentum.</p>
+                <p><span style={{ color: '#06d6a0' }}>Positive momentum</span> (price up) amplifies Attack damage — your card hits harder when the market is bullish for that asset.</p>
+                <p><span style={{ color: '#ef4444' }}>Negative momentum</span> (price down) favors Defend — defensive plays absorb more, and attackers deal less during downturns.</p>
+                <p>Momentum is shown in <span style={{ color: '#f8fafc' }}>basis points (bps)</span>: +500 bps = +5% price move. Cards with higher volatility sensitivity react more to these swings.</p>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Who wins a round? */}
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}
+            className="p-6 rounded-lg mb-8" style={{ background: 'rgba(15,22,41,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Trophy className="w-5 h-5" style={{ color: '#06d6a0' }} />
+              <h3 className="font-display font-bold text-sm uppercase tracking-wider" style={{ color: '#f8fafc' }}>Who Wins a Round?</h3>
+            </div>
+            <p className="text-sm leading-relaxed mb-4" style={{ color: 'rgba(148,163,184,0.8)', fontFamily: "'Rajdhani', sans-serif", fontWeight: 500 }}>
+              Each round, both players take damage based on their opponent&apos;s action, card stats, and the market momentum.
+              The player who takes <span style={{ color: '#f8fafc' }}>less total damage</span> in that round wins it.
+              First to win the majority of rounds (e.g., 2 of 3, 3 of 5, or 6 of 10) wins the match.
+            </p>
+            <p className="text-sm leading-relaxed" style={{ color: 'rgba(148,163,184,0.8)', fontFamily: "'Rajdhani', sans-serif", fontWeight: 500 }}>
+              <span style={{ color: '#8b5cf6' }}>Card abilities</span> add another layer — a well-timed ZK Cloak hides your momentum from the opponent, Desync locks them out of Charge and Swap, and Halving Pressure absorbs damage during critical rounds. Mastering when to Charge is the difference between good and great players.
+            </p>
+          </motion.div>
+
+          <div className="text-center">
+            <Link href="/how-to-play"
+              className="inline-flex items-center gap-2 px-8 py-3.5 font-display font-bold text-sm tracking-widest uppercase transition-all duration-200 rounded"
+              style={{ background: 'rgba(139,92,246,0.12)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,0.30)' }}
+            >
+              <BookOpen className="w-4 h-4" /> Full Game Guide <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
       </section>
