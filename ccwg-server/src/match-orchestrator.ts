@@ -4,6 +4,7 @@ import WebSocket from 'ws';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { AIEngine } from './ai-engine';
 import { EVEAIEngine } from './eve-ai-engine';
+import { LitTraderAIEngine } from './lit-trader-ai-engine';
 import { SettlementService } from './settlement';
 import { OracleSystemContractServer } from './oracle-system';
 
@@ -178,6 +179,7 @@ export class MatchOrchestrator {
   private supabase: SupabaseClient<Database>;
   private aiEngine: AIEngine;
   private eveEngine: EVEAIEngine;
+  private litTraderEngine: LitTraderAIEngine;
   private settlementService: SettlementService;
   private activeMatches: Map<number, ActiveMatch>;
   private oracleSystem: OracleSystemContractServer;
@@ -195,6 +197,9 @@ export class MatchOrchestrator {
     this.eveEngine = new EVEAIEngine(this.supabase, async (args) => {
       await this.handleAIAction(args.matchId, args.roundNumber, args.playerWallet, args.action, args.clientNonce);
     });
+    this.litTraderEngine = new LitTraderAIEngine(this.supabase, async (args) => {
+      await this.handleAIAction(args.matchId, args.roundNumber, args.playerWallet, args.action, args.clientNonce);
+    });
     this.settlementService = new SettlementService(this.supabase);
     this.activeMatches = new Map();
     this.oracleSystem = new OracleSystemContractServer();
@@ -210,6 +215,7 @@ export class MatchOrchestrator {
    * Results are cached in a local map for the lifecycle of the match.
    */
   private eveBotMatchCache = new Map<number, boolean>();
+  private litTraderMatchCache = new Map<number, boolean>();
   private async isEVEMatch(matchId: number): Promise<boolean> {
     if (this.eveBotMatchCache.has(matchId)) {
       return this.eveBotMatchCache.get(matchId)!;
@@ -232,6 +238,33 @@ export class MatchOrchestrator {
       const isEVE = bot?.name === 'E.V.E';
       this.eveBotMatchCache.set(matchId, isEVE);
       return isEVE;
+    } catch {
+      return false;
+    }
+  }
+
+  private async isLitTraderMatch(matchId: number): Promise<boolean> {
+    if (this.litTraderMatchCache.has(matchId)) {
+      return this.litTraderMatchCache.get(matchId)!;
+    }
+    try {
+      const { data: match } = await this.supabase
+        .from('matches')
+        .select('bot_id')
+        .eq('match_id', matchId)
+        .maybeSingle();
+      if (!match?.bot_id) {
+        this.litTraderMatchCache.set(matchId, false);
+        return false;
+      }
+      const { data: bot } = await this.supabase
+        .from('bots')
+        .select('name')
+        .eq('bot_id', match.bot_id)
+        .maybeSingle();
+      const isLitTrader = bot?.name === 'Lit Trader';
+      this.litTraderMatchCache.set(matchId, isLitTrader);
+      return isLitTrader;
     } catch {
       return false;
     }
@@ -482,6 +515,8 @@ export class MatchOrchestrator {
         const isEVE = await this.isEVEMatch(matchId);
         if (isEVE) {
           await this.eveEngine.buildOptimalDeck(matchId, match.player_2);
+        } else if (await this.isLitTraderMatch(matchId)) {
+          await this.litTraderEngine.buildDeck(matchId, match.player_2);
         } else {
           await this.ensureAIHasDeck(matchId, match.player_2);
         }
@@ -744,6 +779,8 @@ export class MatchOrchestrator {
         const isEVE = await this.isEVEMatch(match_id);
         if (isEVE) {
           await this.eveEngine.buildOptimalDeck(match_id, match.player_2);
+        } else if (await this.isLitTraderMatch(match_id)) {
+          await this.litTraderEngine.buildDeck(match_id, match.player_2);
         } else {
           await this.ensureAIHasDeck(match_id, match.player_2);
         }
@@ -839,6 +876,8 @@ export class MatchOrchestrator {
         const isEVE = await this.isEVEMatch(match_id);
         if (isEVE) {
           await this.eveEngine.submitAIAction(match_id, round_number, match.player_2, true);
+        } else if (await this.isLitTraderMatch(match_id)) {
+          await this.litTraderEngine.submitAIAction(match_id, round_number, match.player_2, true);
         } else {
           await this.aiEngine.submitAIAction(match_id, round_number, match.player_2, true);
         }
@@ -998,6 +1037,8 @@ export class MatchOrchestrator {
         const isEVE = await this.isEVEMatch(matchId);
         if (isEVE) {
           await this.eveEngine.buildOptimalDeck(matchId, match.player_2);
+        } else if (await this.isLitTraderMatch(matchId)) {
+          await this.litTraderEngine.buildDeck(matchId, match.player_2);
         } else {
           await this.ensureAIHasDeck(matchId, match.player_2);
         }
@@ -1086,8 +1127,47 @@ export class MatchOrchestrator {
       const isEVE = await this.isEVEMatch(matchId);
       if (isEVE) {
         await this.eveEngine.buildOptimalDeck(matchId, match.player_2);
-        const cardResult = await this.eveEngine.selectCardForRound(matchId, match.player_2, roundNumber);
+
+        // Fetch previous round prices so E.V.E can compute per-asset momentum
+        let previousPrices: { btc: string; eth: string; strk: string; sol: string; doge: string } | undefined;
+        if (roundNumber > 1) {
+          const { data: prevRound } = await this.supabase
+            .from('match_rounds')
+            .select('*')
+            .eq('match_id', matchId)
+            .eq('round_number', roundNumber - 1)
+            .maybeSingle<MatchRoundsRow>();
+          if (prevRound) {
+            previousPrices = {
+              btc: String(prevRound.btc_snapshot ?? '0'),
+              eth: String(prevRound.eth_snapshot ?? '0'),
+              strk: String(prevRound.strk_snapshot ?? '0'),
+              sol: String(prevRound.sol_snapshot ?? '0'),
+              doge: String(prevRound.doge_snapshot ?? '0'),
+            };
+          }
+        }
+
+        const cardResult = await this.eveEngine.selectCardForRound(matchId, match.player_2, roundNumber, prices, previousPrices);
         // Broadcast the selected card to the human player
+        if (cardResult && activeMatch) {
+          activeMatch.currentRoundCards.set(match.player_2, cardResult.cardAsset as CardAsset);
+          for (const ws of activeMatch.players.values()) {
+            this.sendMessage(ws, {
+              type: 'opponent_card_selected',
+              payload: {
+                match_id: matchId,
+                round_number: roundNumber,
+                opponent_wallet: match.player_2,
+                card_asset: cardResult.cardAsset,
+                card: cardResult.cardData,
+              },
+            });
+          }
+        }
+      } else if (await this.isLitTraderMatch(matchId)) {
+        await this.litTraderEngine.buildDeck(matchId, match.player_2);
+        const cardResult = await this.litTraderEngine.selectCardForRound(matchId, match.player_2, roundNumber);
         if (cardResult && activeMatch) {
           activeMatch.currentRoundCards.set(match.player_2, cardResult.cardAsset as CardAsset);
           for (const ws of activeMatch.players.values()) {
@@ -1149,6 +1229,8 @@ export class MatchOrchestrator {
         const isEVE = await this.isEVEMatch(matchId);
         if (isEVE) {
           await this.eveEngine.submitAIAction(matchId, roundNumber, match.player_2, true);
+        } else if (await this.isLitTraderMatch(matchId)) {
+          await this.litTraderEngine.submitAIAction(matchId, roundNumber, match.player_2, true);
         } else {
           await this.aiEngine.submitAIAction(matchId, roundNumber, match.player_2, true);
         }
@@ -1983,7 +2065,9 @@ export class MatchOrchestrator {
     if (activeMatch?.roundTimer) clearTimeout(activeMatch.roundTimer);
     this.activeMatches.delete(matchId);
     this.eveBotMatchCache.delete(matchId);
+    this.litTraderMatchCache.delete(matchId);
     this.eveEngine.cleanupMatch(matchId);
+    this.litTraderEngine.cleanupMatch(matchId);
   }
 
   private async pruneCompletedRankedMatches() {

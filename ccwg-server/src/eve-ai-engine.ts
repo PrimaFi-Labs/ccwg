@@ -188,14 +188,17 @@ export class EVEAIEngine {
         `[E.V.E] Opponent style: ${model.detectedStyle} (confidence: ${model.styleConfidence.toFixed(2)})`
       );
 
+      // Fetch active card's asset to factor market momentum into action choice
+      const activeCardMomentum = await this.getActiveCardMomentum(matchId, aiWallet, roundNumber);
+
       // Predict opponent's next action using multi-layer prediction
       const prediction = this.predictOpponentAction(model, match, roundNumber);
       console.log(
         `[E.V.E] Prediction: ${JSON.stringify(prediction)}`
       );
 
-      // Determine EVE's optimal response
-      let action = this.selectOptimalAction(prediction, model, match, roundNumber, aiWallet);
+      // Determine EVE's optimal response (now market-aware)
+      let action = this.selectOptimalAction(prediction, model, match, roundNumber, aiWallet, activeCardMomentum);
       console.log(`[E.V.E] Initial action selection: ${action}`);
 
       // Apply meta-game adjustments
@@ -655,7 +658,8 @@ export class EVEAIEngine {
     model: OpponentModel,
     match: MatchRow,
     roundNumber: number,
-    aiWallet: string
+    aiWallet: string,
+    activeCardMomentum?: { momentum: number; attackAffinity: number; defenseAffinity: number; asset: string } | null
   ): PlayerAction {
     const roundsToWin = Math.floor(match.total_rounds / 2) + 1;
     const isP2 = match.player_2 === aiWallet;
@@ -737,6 +741,24 @@ export class EVEAIEngine {
       }
     }
 
+    // === MARKET-AWARE ACTION TUNING ===
+    // When E.V.E's active card has strong bullish momentum, Attack is amplified
+    // When bearish, Defend becomes more valuable (reduces negative impact)
+    if (activeCardMomentum) {
+      const m = activeCardMomentum.momentum;
+      if (m > 0.0005) {
+        // Bullish: Attack is amplified by attack_affinity
+        const attackBoost = m * activeCardMomentum.attackAffinity * 3;
+        actionValues.Attack += attackBoost;
+        console.log(`[E.V.E MARKET] Bullish ${activeCardMomentum.asset}: Attack +${attackBoost.toFixed(3)}`);
+      } else if (m < -0.0005) {
+        // Bearish: Defend is amplified by defense_affinity
+        const defendBoost = Math.abs(m) * activeCardMomentum.defenseAffinity * 3;
+        actionValues.Defend += defendBoost;
+        console.log(`[E.V.E MARKET] Bearish ${activeCardMomentum.asset}: Defend +${defendBoost.toFixed(3)}`);
+      }
+    }
+
     // Counter-adaptation: if opponent is reading our patterns, add noise
     if (model.styleConfidence > 0.7 && model.detectedStyle !== 'chaotic') {
       // High-confidence read means opponent might be adapting too
@@ -758,9 +780,9 @@ export class EVEAIEngine {
       }
     }
 
-    // Stochastic selection: 80% exploit best action, 20% use weighted distribution
-    // This prevents perfect predictability while still being optimal most of the time
-    if (Math.random() > 0.80) {
+    // Stochastic selection: 90% exploit best action, 10% use weighted distribution
+    // E.V.E is highly intelligent — minimal randomness, mostly optimal play
+    if (Math.random() > 0.90) {
       bestAction = this.weightedRandomAction(actionValues);
     }
 
@@ -1113,7 +1135,9 @@ export class EVEAIEngine {
   async selectCardForRound(
     matchId: number,
     aiWallet: string,
-    roundNumber: number
+    roundNumber: number,
+    marketPrices?: { btc: string; eth: string; strk: string; sol: string; doge: string },
+    previousPrices?: { btc: string; eth: string; strk: string; sol: string; doge: string }
   ): Promise<{
     nextCardId: number;
     cardAsset: string | null;
@@ -1159,7 +1183,19 @@ export class EVEAIEngine {
       const eveHistory = this.eveActionHistory.get(matchId) || [];
       const likelyAction = this.guessOurNextAction(model, eveHistory);
 
-      // Score each card based on our likely action and opponent model
+      // Calculate per-asset momentum from market prices
+      const assetMomentum: Record<string, number> = {};
+      if (marketPrices && previousPrices) {
+        for (const asset of ['btc', 'eth', 'strk', 'sol', 'doge'] as const) {
+          const curr = Number.parseFloat(marketPrices[asset]);
+          const prev = Number.parseFloat(previousPrices[asset]);
+          if (prev > 0 && Number.isFinite(curr) && Number.isFinite(prev)) {
+            assetMomentum[asset.toUpperCase()] = (curr - prev) / prev;
+          }
+        }
+      }
+
+      // Score each card based on our likely action, opponent model, AND market conditions
       const cardScores = deckCards
         .filter((c) => c.template)
         .map((c) => {
@@ -1185,13 +1221,37 @@ export class EVEAIEngine {
           // Score based on likely action
           if (likelyAction === 'Attack') {
             score += t.attack_affinity * 20;
-            score += basePower * 0.2; // Extra base power matters for attacks
+            score += basePower * 0.2;
           } else if (likelyAction === 'Defend') {
             score += t.defense_affinity * 20;
           } else if (likelyAction === 'Charge') {
             score += (t.charge_affinity ?? 0) * 15;
-            // Ability value matters more when charging
             if (t.ability_id) score += 5;
+          }
+
+          // === MARKET-AWARE SCORING ===
+          // If the asset is bullish (positive momentum), strongly favor it for attack
+          // If the asset is bearish (negative momentum), favor it for defense
+          const momentum = assetMomentum[t.asset] ?? 0;
+          if (momentum > 0) {
+            // Bullish: this card's attack will hit harder due to positive momentum
+            // Scale by attack_affinity — higher affinity amplifies bullish momentum
+            score += momentum * t.attack_affinity * 500;
+            if (likelyAction === 'Attack') {
+              score += momentum * t.attack_affinity * 300; // Extra bonus when attacking
+            }
+          } else if (momentum < 0) {
+            // Bearish: this card's defense is more valuable (reduces negative impact)
+            score += Math.abs(momentum) * t.defense_affinity * 400;
+            if (likelyAction === 'Defend') {
+              score += Math.abs(momentum) * t.defense_affinity * 200;
+            }
+          }
+
+          // Volatility sensitivity bonus — high vol sensitivity cards benefit more in volatile markets
+          const absMaxMomentum = Math.max(...Object.values(assetMomentum).map(Math.abs), 0);
+          if (absMaxMomentum > 0.001) {
+            score += t.volatility_sensitivity * absMaxMomentum * 150;
           }
 
           // Versatility bonus for cards that are good at multiple things
@@ -1216,10 +1276,11 @@ export class EVEAIEngine {
         .eq('player_wallet', aiWallet);
 
       const selectedCard = cardScores[0];
+      const momentum = assetMomentum[selectedCard?.template?.asset ?? ''] ?? 0;
       console.log(
         `[E.V.E CARD] Round ${roundNumber}: Selected ${selectedCard?.template?.name ?? 'unknown'} ` +
           `(${selectedCard?.template?.asset ?? '?'}) — Score: ${selectedCard?.score?.toFixed(1) ?? '?'} ` +
-          `— Likely action: ${likelyAction}`
+          `— Likely action: ${likelyAction} — Momentum: ${(momentum * 100).toFixed(3)}%`
       );
 
       return {
@@ -1256,6 +1317,72 @@ export class EVEAIEngine {
   // =========================================================================
   // Utility Functions
   // =========================================================================
+
+  /**
+   * Fetches the active card's asset and computes its market momentum
+   * by comparing the current round snapshot to the previous round.
+   */
+  private async getActiveCardMomentum(
+    matchId: number,
+    aiWallet: string,
+    roundNumber: number
+  ): Promise<{ momentum: number; attackAffinity: number; defenseAffinity: number; asset: string } | null> {
+    try {
+      // Get E.V.E's active card
+      const { data: mp } = await this.supabase
+        .from('match_players')
+        .select('bot_active_card_id')
+        .eq('match_id', matchId)
+        .eq('player_wallet', aiWallet)
+        .maybeSingle();
+
+      if (!mp?.bot_active_card_id) return null;
+
+      // Fetch card template
+      const { data: card } = await this.supabase
+        .from('bot_cards')
+        .select('template:card_templates(asset, attack_affinity, defense_affinity)')
+        .eq('id', mp.bot_active_card_id)
+        .maybeSingle();
+
+      const template = card?.template as unknown as {
+        asset: string;
+        attack_affinity: number;
+        defense_affinity: number;
+      } | null;
+      if (!template) return null;
+
+      if (roundNumber <= 1) return { momentum: 0, attackAffinity: template.attack_affinity, defenseAffinity: template.defense_affinity, asset: template.asset };
+
+      // Fetch current and previous round snapshots
+      const { data: rounds } = await this.supabase
+        .from('match_rounds')
+        .select('round_number, btc_snapshot, eth_snapshot, strk_snapshot, sol_snapshot, doge_snapshot')
+        .eq('match_id', matchId)
+        .in('round_number', [roundNumber, roundNumber - 1])
+        .order('round_number', { ascending: true });
+
+      if (!rounds || rounds.length < 2) return { momentum: 0, attackAffinity: template.attack_affinity, defenseAffinity: template.defense_affinity, asset: template.asset };
+
+      const prev = rounds[0];
+      const curr = rounds[1];
+
+      const assetKey = template.asset.toLowerCase() as 'btc' | 'eth' | 'strk' | 'sol' | 'doge';
+      const snapshotKey = `${assetKey}_snapshot` as keyof typeof curr;
+      const prevPrice = Number(prev[snapshotKey] ?? 0);
+      const currPrice = Number(curr[snapshotKey] ?? 0);
+
+      if (prevPrice <= 0) return { momentum: 0, attackAffinity: template.attack_affinity, defenseAffinity: template.defense_affinity, asset: template.asset };
+
+      const momentum = (currPrice - prevPrice) / prevPrice;
+      console.log(`[E.V.E MARKET] Active card ${template.asset} momentum: ${(momentum * 100).toFixed(4)}%`);
+
+      return { momentum, attackAffinity: template.attack_affinity, defenseAffinity: template.defense_affinity, asset: template.asset };
+    } catch (err) {
+      console.error('[E.V.E MARKET] Error fetching active card momentum:', err);
+      return null;
+    }
+  }
 
   private async getMatchState(matchId: number): Promise<MatchRow | null> {
     const { data, error } = await this.supabase

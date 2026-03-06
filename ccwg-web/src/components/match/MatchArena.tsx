@@ -848,10 +848,10 @@ export function MatchArena({
               <div className="rounded-lg px-3 py-2 border border-[var(--border-base)]" style={{ background: 'var(--bg-tertiary)' }}>
                 <div className="text-xs text-[var(--text-muted)]">You</div>
                 <div className="font-semibold text-[var(--text-primary)]">
-                  {((momentumDetails.my.momentum ?? 0) / 100).toFixed(3)}%
+                  {cloakActive ? 'Hidden' : `${((momentumDetails.my.momentum ?? 0) / 100).toFixed(3)}%`}
                 </div>
                 <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
-                  ${momentumDetails.my.base} → ${momentumDetails.my.snapshot}
+                  {cloakActive ? 'Hidden' : `$${momentumDetails.my.base} → $${momentumDetails.my.snapshot}`}
                 </div>
               </div>
               <div className="rounded-lg px-3 py-2 border border-[var(--border-base)]" style={{ background: 'var(--bg-tertiary)' }}>
@@ -891,7 +891,7 @@ export function MatchArena({
               )}
             </div>
 
-            {activeCard && myMomentum !== null && (
+            {!cloakActive && activeCard && myMomentum !== null && (
               <MomentumDisplay
                 momentum={myMomentum}
                 cardAsset={activeCard.template?.asset || 'UNKNOWN'}
@@ -1171,7 +1171,7 @@ export function MatchArena({
                   <div>
                     <p className="text-[var(--text-muted)] text-xs mb-0.5">Your Momentum</p>
                     <p className="text-[var(--text-primary)] font-semibold">
-                      {((latestLog?.myMomentum ?? 0) / 100).toFixed(3)}%
+                      {cloakActive ? 'Hidden' : `${((latestLog?.myMomentum ?? 0) / 100).toFixed(3)}%`}
                     </p>
                   </div>
                   <div>

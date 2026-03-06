@@ -17,11 +17,11 @@ export const DEFAULT_ABILITIES: Record<string, Omit<Ability, 'created_at' | 'upd
   strk_zk_cloak: {
     ability_id: 'strk_zk_cloak',
     name: 'ZK-CLOAK',
-    description: 'Opponent sees only their own data for 2 rounds',
+    description: 'Opponent sees only their own data for 3 rounds (including momentum)',
     trigger_type: 'charge_triggered',
     effect_type: 'visibility_denial',
     config: {
-      cloak_rounds: 2,
+      cloak_rounds: 3,
     },
     usage_limit: 'once_per_match',
   },
