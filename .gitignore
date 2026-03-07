@@ -74,3 +74,6 @@ ccwg-web/*supabase
 progress.md
 .vercel
 .env*.local
+
+#Others
+game-demo.md

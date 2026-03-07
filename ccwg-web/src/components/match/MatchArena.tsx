@@ -140,6 +140,10 @@ export function MatchArena({
   const momentumByRoundRef = useRef(new Map<number, { my: number; opponent: number }>());
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const opponentCardTimeoutRoundRef = useRef<number | null>(null);
+  const botQuipTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [botQuip, setBotQuip] = useState<{ text: string; id: number } | null>(null);
+  const botQuipIdRef = useRef(0);
 
   /* ─── screen flash helper ─── */
   const triggerScreenFlash = useCallback((type: 'win' | 'loss' | 'draw') => {
@@ -225,6 +229,9 @@ export function MatchArena({
       setRoundResult(null);
       setRoundLogVisible(false);
       setActionFeed([]);
+      // Clear any lingering bot quip from the previous round
+      if (botQuipTimerRef.current) clearTimeout(botQuipTimerRef.current);
+      setBotQuip(null);
     },
     onOpponentCardSelected: (data) => {
       const payload = data as {
@@ -374,6 +381,12 @@ export function MatchArena({
       const suffix = tournamentEventId ? `?eventId=${encodeURIComponent(tournamentEventId)}` : '';
       router.push(`/match/${match.match_id}/results${suffix}`);
     },
+    onBotMessage: (data) => {
+      if (botQuipTimerRef.current) clearTimeout(botQuipTimerRef.current);
+      const id = ++botQuipIdRef.current;
+      setBotQuip({ text: data.message, id });
+      botQuipTimerRef.current = setTimeout(() => setBotQuip(null), 6000);
+    },
     onError: (error) => {
       console.error('[ERROR]', error);
     },
@@ -400,6 +413,7 @@ export function MatchArena({
     return () => {
       if (roundLogTimerRef.current) clearTimeout(roundLogTimerRef.current);
       if (reconnectTimerRef.current) clearInterval(reconnectTimerRef.current);
+      if (botQuipTimerRef.current) clearTimeout(botQuipTimerRef.current);
     };
   }, []);
 
@@ -910,6 +924,31 @@ export function MatchArena({
             <h3 className="text-sm sm:text-base font-semibold text-[var(--text-primary)] text-center">
               {match.mode === 'VsAI' ? (opponentName || 'Bot') : (opponentName || 'Opponent')}&apos;s Card
             </h3>
+
+            {/* Bot speech bubble */}
+            <AnimatePresence>
+              {isVsAI && botQuip && (
+                <motion.div
+                  key={botQuip.id}
+                  className="relative mx-2"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <div
+                    className="rounded-xl border border-[var(--accent-primary)]/25 px-3 py-2 text-xs text-[var(--text-primary)] text-center leading-relaxed"
+                    style={{ background: 'var(--bg-secondary)' }}
+                  >
+                    {botQuip.text}
+                  </div>
+                  <div
+                    className="absolute bottom-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 rotate-45 border-r border-b border-[var(--accent-primary)]/25"
+                    style={{ background: 'var(--bg-secondary)' }}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div className="flex justify-center">
               {opponentCardData ? (

@@ -21,7 +21,10 @@ import type {
   MomentumRevealMessage,
   RoundEndMessage,
   MatchEndMessage,
+  BotMessageMessage,
+  BotDialogueTrigger,
 } from '@ccwg/shared';
+import { pickBotLine } from './bot-dialogue';
 
 const ROUND_DURATION_MS = 60_000;
 const SNAPSHOT_DISPLAY_DELAY_MS = 2500;
@@ -115,6 +118,11 @@ interface ActiveMatch {
   disableSwapUntilRoundByWallet: Map<string, number>;
   /** Whether on-chain escrow was successfully locked for this match. */
   escrowLocked: boolean;
+  /**
+   * Stored after each round resolves so the NEXT round's dialogue can
+   * reference what just happened ("I wasn't surprised I won that").
+   */
+  lastRoundBotTrigger: BotDialogueTrigger | null;
   basePrices?: {
     btc: string;
     eth: string;
@@ -209,6 +217,53 @@ export class MatchOrchestrator {
    */
   private eveBotMatchCache = new Map<number, boolean>();
   private litTraderMatchCache = new Map<number, boolean>();
+  private botNameCache = new Map<number, string>();
+  private async getBotName(matchId: number): Promise<string> {
+    if (this.botNameCache.has(matchId)) return this.botNameCache.get(matchId)!;
+    try {
+      const { data: match } = await this.supabase
+        .from('matches')
+        .select('bot_id')
+        .eq('match_id', matchId)
+        .maybeSingle();
+      if (!match?.bot_id) { this.botNameCache.set(matchId, 'default'); return 'default'; }
+      const { data: bot } = await this.supabase
+        .from('bots')
+        .select('name')
+        .eq('bot_id', match.bot_id)
+        .maybeSingle();
+      const name = bot?.name ?? 'default';
+      this.botNameCache.set(matchId, name);
+      return name;
+    } catch {
+      return 'default';
+    }
+  }
+
+  private emitBotMessage(
+    matchId: number,
+    botWallet: string,
+    trigger: BotDialogueTrigger,
+    botName: string
+  ) {
+    const activeMatch = this.activeMatches.get(matchId);
+    if (!activeMatch) return;
+    const line = pickBotLine(botName, trigger);
+    console.log(`[BOT DIALOGUE] match=${matchId} bot=${botName} trigger=${trigger} → "${line}"`);
+    const message: BotMessageMessage = {
+      type: 'bot_message',
+      payload: {
+        match_id: matchId,
+        bot_wallet: botWallet,
+        trigger,
+        message: line,
+      },
+    };
+    for (const ws of activeMatch.players.values()) {
+      this.sendMessage(ws, message);
+    }
+  }
+
   private async isEVEMatch(matchId: number): Promise<boolean> {
     if (this.eveBotMatchCache.has(matchId)) {
       return this.eveBotMatchCache.get(matchId)!;
@@ -529,6 +584,7 @@ export class MatchOrchestrator {
         disableChargeUntilRoundByWallet: new Map(),
         disableSwapUntilRoundByWallet: new Map(),
         escrowLocked: false,
+        lastRoundBotTrigger: null,
       };
       this.activeMatches.set(matchId, activeMatch);
     }
@@ -1223,6 +1279,19 @@ export class MatchOrchestrator {
           await this.aiEngine.submitAIAction(matchId, roundNumber, match.player_2, true);
         }
       }
+
+      // Emit bot dialogue after the snapshot overlay clears (2500ms).
+      // For rounds 2+, use the previous round's result trigger so the bot
+      // references what just happened ("I wasn't surprised I won that round").
+      // For round 1 (no prior result) always use 'round_start'.
+      const botName = await this.getBotName(matchId);
+      const pendingTrigger = roundNumber > 1 ? (activeMatch.lastRoundBotTrigger ?? 'round_start') : 'round_start';
+      activeMatch.lastRoundBotTrigger = null;
+      const aiWalletForDialogue = match.player_2;
+      const t = setTimeout(() => {
+        this.emitBotMessage(matchId, aiWalletForDialogue, pendingTrigger, botName);
+      }, 3000 + Math.random() * 600);
+      t.unref?.();
     }
 
     if (!isVsAI) {
@@ -1539,9 +1608,19 @@ export class MatchOrchestrator {
     }
 
     const roundsToWin = Math.floor((match.total_rounds ?? 0) / 2) + 1;
+    const isMatchOver = Boolean(winner && (updatedP1Rounds >= roundsToWin || updatedP2Rounds >= roundsToWin));
 
-    if (winner && (updatedP1Rounds >= roundsToWin || updatedP2Rounds >= roundsToWin)) {
-      await this.endMatch(matchId, winner);
+    // Store result so next round's opening line references what just happened.
+    // For the final round the endMatch handler emits its own match_won/lost line.
+    if (match.mode === 'VsAI' && match.player_2 && !isMatchOver && activeMatch) {
+      activeMatch.lastRoundBotTrigger =
+        winner === match.player_2 ? 'round_won'
+        : winner === match.player_1 ? 'round_lost'
+        : 'round_draw';
+    }
+
+    if (isMatchOver) {
+      await this.endMatch(matchId, winner!);
       return;
     }
 
@@ -2036,6 +2115,16 @@ export class MatchOrchestrator {
 
     this.broadcastToMatch(matchId, message);
 
+    // Emit bot match-end dialogue before cleaning up the active match
+    if (match.mode === 'VsAI' && match.player_2) {
+      const botName = await this.getBotName(matchId);
+      const matchTrigger: BotDialogueTrigger =
+        winner === match.player_2 ? 'match_won'
+        : winner === match.player_1 ? 'match_lost'
+        : 'match_draw';
+      this.emitBotMessage(matchId, match.player_2, matchTrigger, botName);
+    }
+
     if (winner) {
       try {
         const activeMatch = this.activeMatches.get(matchId);
@@ -2067,6 +2156,7 @@ export class MatchOrchestrator {
     this.activeMatches.delete(matchId);
     this.eveBotMatchCache.delete(matchId);
     this.litTraderMatchCache.delete(matchId);
+    this.botNameCache.delete(matchId);
     this.eveEngine.cleanupMatch(matchId);
     this.litTraderEngine.cleanupMatch(matchId);
   }

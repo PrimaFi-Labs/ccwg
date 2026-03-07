@@ -14,6 +14,7 @@ interface UseMatchWebSocketOptions {
   onOpponentCardSelected?: (data: unknown) => void;
   onOpponentActionLocked?: (data: unknown) => void;
   onMomentumReveal?: (data: unknown) => void;
+  onBotMessage?: (data: { message: string; trigger: string; bot_wallet: string }) => void;
   onError?: (error: string) => void;
 }
 
@@ -26,6 +27,7 @@ export function useMatchWebSocket({
   onOpponentCardSelected,
   onOpponentActionLocked,
   onMomentumReveal,
+  onBotMessage,
   onError,
 }: UseMatchWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
@@ -44,6 +46,7 @@ export function useMatchWebSocket({
     onOpponentCardSelected,
     onOpponentActionLocked,
     onMomentumReveal,
+    onBotMessage,
     onError,
   });
 
@@ -55,6 +58,7 @@ export function useMatchWebSocket({
       onOpponentCardSelected,
       onOpponentActionLocked,
       onMomentumReveal,
+      onBotMessage,
       onError,
     };
   }, [
@@ -64,6 +68,7 @@ export function useMatchWebSocket({
     onOpponentCardSelected,
     onOpponentActionLocked,
     onMomentumReveal,
+    onBotMessage,
     onError,
   ]);
 
@@ -192,6 +197,9 @@ export function useMatchWebSocket({
               break;
             case 'momentum_reveal':
               handlersRef.current.onMomentumReveal?.(message.payload);
+              break;
+            case 'bot_message':
+              handlersRef.current.onBotMessage?.(message.payload as { message: string; trigger: string; bot_wallet: string });
               break;
             case 'error':
               console.error('Server error:', message.payload.message);

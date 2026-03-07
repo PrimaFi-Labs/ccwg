@@ -17,7 +17,17 @@ export type WSMessageType =
   | 'opponent_card_selected'
   | 'opponent_action_locked'
   | 'momentum_reveal'
+  | 'bot_message'
   | 'error';
+
+export type BotDialogueTrigger =
+  | 'round_start'
+  | 'round_won'
+  | 'round_lost'
+  | 'round_draw'
+  | 'match_won'
+  | 'match_lost'
+  | 'match_draw';
 
 export interface WSMessage {
   type: WSMessageType;
@@ -159,5 +169,15 @@ export interface ErrorMessage {
   payload: {
     message: string;
     code?: string;
+  };
+}
+
+export interface BotMessageMessage {
+  type: 'bot_message';
+  payload: {
+    match_id: number;
+    bot_wallet: string;
+    trigger: BotDialogueTrigger;
+    message: string;
   };
 }

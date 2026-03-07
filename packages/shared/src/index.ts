@@ -68,6 +68,8 @@ export type {
   RoundEndMessage,
   MatchEndMessage,
   ErrorMessage,
+  BotMessageMessage,
+  BotDialogueTrigger,
 } from './types/websocket';
 
 export type {
