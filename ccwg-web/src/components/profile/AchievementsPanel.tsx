@@ -31,13 +31,19 @@ export function AchievementsPanel({ walletAddress }: AchievementsPanelProps) {
 
   useEffect(() => {
     if (!walletAddress) return;
-    fetch(`/api/player/achievements?wallet_address=${encodeURIComponent(walletAddress)}`)
-      .then((r) => r.json())
-      .then((json) => {
-        setAchievements(json.achievements ?? []);
-      })
-      .catch(() => setAchievements([]))
-      .finally(() => setLoading(false));
+
+    // Run backfill first (idempotent), then fetch the updated list.
+    // The backfill call only awards achievements the player hasn't earned yet,
+    // so it's safe to call every time the panel mounts.
+    fetch('/api/player/achievements/backfill', { method: 'POST' })
+      .catch(() => { /* non-critical */ })
+      .finally(() => {
+        fetch(`/api/player/achievements?wallet_address=${encodeURIComponent(walletAddress)}`)
+          .then((r) => r.json())
+          .then((json) => { setAchievements(json.achievements ?? []); })
+          .catch(() => setAchievements([]))
+          .finally(() => setLoading(false));
+      });
   }, [walletAddress]);
 
   const grouped = CATEGORY_ORDER.reduce<Record<string, UnlockedAchievement[]>>((acc, cat) => {

@@ -272,6 +272,60 @@ const CHECKS: Record<string, CheckFn> = {
     return checkWinStreak(ctx.playerWallet, 5, sb);
   },
 
+  // ── COLLECTOR ───────────────────────────────────────────────────────────
+  first_card: async (ctx, sb) => {
+    const { count } = await sb
+      .from('player_cards')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_wallet', ctx.playerWallet);
+    return (count ?? 0) >= 1;
+  },
+
+  full_set: async (ctx, sb) => {
+    const { data } = await sb
+      .from('player_cards')
+      .select('template:card_templates!inner(asset)')
+      .eq('owner_wallet', ctx.playerWallet);
+    if (!data) return false;
+    const assets = new Set(data.map((r: any) => r.template?.asset));
+    return ['BTC', 'ETH', 'STRK', 'SOL', 'DOGE'].every((a) => assets.has(a));
+  },
+
+  legendary_owner: async (ctx, sb) => {
+    const { count } = await sb
+      .from('player_cards')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_wallet', ctx.playerWallet)
+      .eq('template:card_templates!inner(rarity)', 'Legendary' as any);
+    return (count ?? 0) >= 1;
+  },
+
+  level_up: async (ctx, sb) => {
+    const { count } = await sb
+      .from('player_cards')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_wallet', ctx.playerWallet)
+      .gte('level', 3);
+    return (count ?? 0) >= 1;
+  },
+
+  max_power: async (ctx, sb) => {
+    const { count } = await sb
+      .from('player_cards')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_wallet', ctx.playerWallet)
+      .gte('level', 5);
+    return (count ?? 0) >= 1;
+  },
+
+  arsenal: async (ctx, sb) => {
+    const { count } = await sb
+      .from('player_cards')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_wallet', ctx.playerWallet);
+    return (count ?? 0) >= 10;
+  },
+
   // ── SOCIAL ───────────────────────────────────────────────────────────────
   challenger: async (ctx) => ctx.isWinner && ctx.mode === 'Challenge',
 
@@ -497,6 +551,262 @@ export class AchievementService {
     } catch (err) {
       console.error('[ACHIEVEMENTS] awardAchievement failed:', err);
       return null;
+    }
+  }
+
+  /**
+   * Retroactively check all achievements for a player using their current DB
+   * state (match history, card collection, streaks, etc.).  Can be called at
+   * any time and is idempotent — already-owned achievements are skipped.
+   *
+   * Returns the list of newly awarded achievements for the response payload.
+   */
+  async backfillPlayerAchievements(playerWallet: string): Promise<AchievementUnlock[]> {
+    try {
+      // Build a synthetic "always-eligible" context — each CHECK that needs
+      // real match context (isWinner, mode, …) is handled below via a
+      // dedicated DB query instead.
+      const ctx: MatchAchievementContext = {
+        matchId: 0,
+        playerWallet,
+        mode: '__backfill__', // won't match any mode-specific check naturally
+        isWinner: false,
+        playerRoundsWon: 0,
+        opponentRoundsWon: 0,
+        totalRounds: 0,
+        usedCharge: false,
+        defendedRound1: false,
+      };
+
+      // Load all definitions
+      const { data: defs } = await this.supabase
+        .from('achievement_definitions')
+        .select('key, title, description, category, tier, badge_icon, badge_color');
+      if (!defs || defs.length === 0) return [];
+
+      // Load already-unlocked keys
+      const { data: existing } = await this.supabase
+        .from('player_achievements')
+        .select('achievement_key')
+        .eq('player_wallet', playerWallet);
+      const unlocked = new Set((existing ?? []).map((r) => r.achievement_key));
+
+      // ── Backfill-specific evaluation ─────────────────────────────────────
+      // For match-context checks we evaluate eligibility directly from the DB
+      // rather than relying on the in-flight ctx.
+
+      const wallet = playerWallet;
+
+      const [
+        winsRes,
+        totalRes,
+        aiWinsRes,
+        rankedWinsRes,
+        challengeWinsRes,
+        roomWinsRes,
+        cardsRes,
+        cardAssetsRes,
+        legRarityRes,
+        level3Res,
+        level5Res,
+        lastMatchesRes,
+      ] = await Promise.all([
+        // total wins
+        this.supabase
+          .from('matches')
+          .select('match_id', { count: 'exact', head: true })
+          .eq('winner', wallet)
+          .eq('status', 'Completed'),
+        // total played
+        this.supabase
+          .from('matches')
+          .select('match_id', { count: 'exact', head: true })
+          .or(`player_1.eq.${wallet},player_2.eq.${wallet}`)
+          .eq('status', 'Completed'),
+        // VsAI wins
+        this.supabase
+          .from('matches')
+          .select('match_id', { count: 'exact', head: true })
+          .eq('winner', wallet)
+          .eq('mode', 'VsAI')
+          .eq('status', 'Completed'),
+        // Ranked wins
+        this.supabase
+          .from('matches')
+          .select('match_id', { count: 'exact', head: true })
+          .eq('winner', wallet)
+          .eq('mode', 'Ranked1v1')
+          .eq('status', 'Completed'),
+        // Challenge wins
+        this.supabase
+          .from('matches')
+          .select('match_id', { count: 'exact', head: true })
+          .eq('winner', wallet)
+          .eq('mode', 'Challenge')
+          .eq('status', 'Completed'),
+        // Room wins
+        this.supabase
+          .from('matches')
+          .select('match_id', { count: 'exact', head: true })
+          .eq('winner', wallet)
+          .eq('mode', 'Room')
+          .eq('status', 'Completed'),
+        // cards owned count
+        this.supabase
+          .from('player_cards')
+          .select('id', { count: 'exact', head: true })
+          .eq('owner_wallet', wallet),
+        // card assets for full_set
+        this.supabase
+          .from('player_cards')
+          .select('template:card_templates!inner(asset)')
+          .eq('owner_wallet', wallet),
+        // legendary cards
+        this.supabase
+          .from('player_cards')
+          .select('id', { count: 'exact', head: true })
+          .eq('owner_wallet', wallet)
+          .eq('template:card_templates!inner(rarity)' as any, 'Legendary'),
+        // level >= 3 cards
+        this.supabase
+          .from('player_cards')
+          .select('id', { count: 'exact', head: true })
+          .eq('owner_wallet', wallet)
+          .gte('level', 3),
+        // level >= 5 cards
+        this.supabase
+          .from('player_cards')
+          .select('id', { count: 'exact', head: true })
+          .eq('owner_wallet', wallet)
+          .gte('level', 5),
+        // last 10 matches for streak checks
+        this.supabase
+          .from('matches')
+          .select('winner')
+          .or(`player_1.eq.${wallet},player_2.eq.${wallet}`)
+          .eq('status', 'Completed')
+          .order('ended_at', { ascending: false })
+          .limit(10),
+      ]);
+
+      const wins = winsRes.count ?? 0;
+      const played = totalRes.count ?? 0;
+      const aiWins = aiWinsRes.count ?? 0;
+      const rankedWins = rankedWinsRes.count ?? 0;
+      const challengeWins = challengeWinsRes.count ?? 0;
+      const roomWins = roomWinsRes.count ?? 0;
+      const cardsOwned = cardsRes.count ?? 0;
+      const cardAssets = new Set(
+        (cardAssetsRes.data ?? []).map((r: any) => r.template?.asset)
+      );
+      const hasLegendary = (legRarityRes.count ?? 0) >= 1;
+      const hasLevel3 = (level3Res.count ?? 0) >= 1;
+      const hasLevel5 = (level5Res.count ?? 0) >= 1;
+      const lastMatches = lastMatchesRes.data ?? [];
+      const streak = (n: number) =>
+        lastMatches.length >= n && lastMatches.slice(0, n).every((m) => m.winner === wallet);
+
+      // Also check mode diversity for all_rounder
+      const wonAllModes =
+        aiWins >= 1 && rankedWins >= 1 && challengeWins >= 1 && roomWins >= 1;
+
+      // win-rate for grandmaster
+      const winRate = played > 0 ? wins / played : 0;
+
+      // dominant_victory / comeback_kid need per-match data — too expensive to
+      // backfill accurately, so skip those context-specific checks here.
+      const BACKFILL_CHECKS: Record<string, boolean> = {
+        first_blood:       wins === 1,
+        destroyer:         wins >= 50,
+        warlord:           wins >= 100,
+        legend_blade:      wins >= 500,
+        tactician:         wins >= 25,
+        grandmaster:       played >= 30 && winRate >= 0.7,
+        bot_slayer:        aiWins === 1,
+        bot_veteran:       aiWins >= 10,
+        bot_master:        aiWins >= 50,
+        ranked_debut:      rankedWins === 1,
+        on_the_rise:       rankedWins >= 5,
+        ranked_warrior:    rankedWins >= 25,
+        elite_fighter:     rankedWins >= 50,
+        first_steps:       played === 1,
+        dedicated:         played >= 10,
+        veteran:           played >= 50,
+        centurion:         played >= 100,
+        marathon:          played >= 500,
+        hot_streak:        streak(3),
+        on_fire:           streak(5),
+        unstoppable:       streak(10),
+        challenger:        challengeWins >= 1,
+        room_warrior:      roomWins >= 1,
+        silver_warrior:    wins >= 10,
+        all_rounder:       wonAllModes,
+        // collector
+        first_card:        cardsOwned >= 1,
+        full_set:          ['BTC', 'ETH', 'STRK', 'SOL', 'DOGE'].every((a) => cardAssets.has(a)),
+        legendary_owner:   hasLegendary,
+        level_up:          hasLevel3,
+        max_power:         hasLevel5,
+        arsenal:           cardsOwned >= 10,
+      };
+
+      const keysToInsert: string[] = [];
+      const newlyUnlocked: AchievementUnlock[] = [];
+
+      for (const def of defs) {
+        if (unlocked.has(def.key)) continue;
+        if (!(def.key in BACKFILL_CHECKS)) continue;
+        if (!BACKFILL_CHECKS[def.key]) continue;
+
+        keysToInsert.push(def.key);
+        newlyUnlocked.push({
+          key: def.key,
+          title: def.title,
+          description: def.description,
+          category: def.category,
+          tier: def.tier,
+          badge_icon: def.badge_icon,
+          badge_color: def.badge_color,
+        });
+      }
+
+      if (keysToInsert.length > 0) {
+        await this.supabase.from('player_achievements').insert(
+          keysToInsert.map((key) => ({ player_wallet: playerWallet, achievement_key: key }))
+        );
+        console.log(`[ACHIEVEMENTS] backfill ${playerWallet}: ${keysToInsert.join(', ')}`);
+      }
+
+      // completionist check after inserting the batch
+      const totalNow = unlocked.size + keysToInsert.length;
+      const completionistKey = 'completionist';
+      if (
+        !unlocked.has(completionistKey) &&
+        !keysToInsert.includes(completionistKey) &&
+        totalNow >= 15
+      ) {
+        const compDef = defs.find((d) => d.key === completionistKey);
+        if (compDef) {
+          await this.supabase
+            .from('player_achievements')
+            .insert({ player_wallet: playerWallet, achievement_key: completionistKey });
+          console.log(`[ACHIEVEMENTS] backfill ${playerWallet}: completionist`);
+          newlyUnlocked.push({
+            key: compDef.key,
+            title: compDef.title,
+            description: compDef.description,
+            category: compDef.category,
+            tier: compDef.tier,
+            badge_icon: compDef.badge_icon,
+            badge_color: compDef.badge_color,
+          });
+        }
+      }
+
+      return newlyUnlocked;
+    } catch (err) {
+      console.error('[ACHIEVEMENTS] backfill failed:', err);
+      return [];
     }
   }
 }
