@@ -18,6 +18,7 @@ export type WSMessageType =
   | 'opponent_action_locked'
   | 'momentum_reveal'
   | 'bot_message'
+  | 'achievement_unlocked'
   | 'error';
 
 export type BotDialogueTrigger =
@@ -179,5 +180,20 @@ export interface BotMessageMessage {
     bot_wallet: string;
     trigger: BotDialogueTrigger;
     message: string;
+  };
+}
+
+export interface AchievementUnlockedMessage {
+  type: 'achievement_unlocked';
+  payload: {
+    match_id: number;
+    player_wallet: string;
+    achievement_key: string;
+    title: string;
+    description: string;
+    category: string;
+    tier: string;
+    badge_icon: string;
+    badge_color: string;
   };
 }

@@ -6,6 +6,8 @@ import Image from 'next/image';
 import { useAccount } from '@starknet-react/core';
 import { ConnectWallet } from '@/src/components/auth/ConnectWallet';
 import { SocialPanel } from '@/src/components/profile/SocialPanel';
+import { AchievementBadgeWall, type UnlockedAchievement } from '@/src/components/profile/AchievementBadgeWall';
+import { AchievementsPanel } from '@/src/components/profile/AchievementsPanel';
 import { Trophy, Target, TrendingUp, Copy, Wallet, Droplets, ExternalLink, Shield, Swords, Star, Package, CalendarDays } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatStrk } from '@/src/lib/cartridge/utils';
@@ -46,21 +48,24 @@ export default function ProfilePage() {
   const [copied, setCopied] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
   const [joinedAt, setJoinedAt] = useState<string | null>(null);
+  const [achievements, setAchievements] = useState<UnlockedAchievement[]>([]);
 
   useEffect(() => {
     if (!address) return;
 
     const fetchProfileData = async () => {
       try {
-        const [statsRes, matchesRes, profileRes] = await Promise.all([
+        const [statsRes, matchesRes, profileRes, achievementsRes] = await Promise.all([
           fetch(`/api/player/stats?wallet_address=${address}`),
           fetch(`/api/player/matches?wallet_address=${address}&limit=8`),
           fetch(`/api/player/profile?wallet_address=${address}`),
+          fetch(`/api/player/achievements?wallet_address=${address}`),
         ]);
-        const [statsData, matchesData, profileData] = await Promise.all([
+        const [statsData, matchesData, profileData, achievementsData] = await Promise.all([
           statsRes.json(),
           matchesRes.json(),
           profileRes.json(),
+          achievementsRes.json(),
         ]);
         setStats(statsData.stats);
         setRecentMatches(matchesData.matches || []);
@@ -68,6 +73,7 @@ export default function ProfilePage() {
           setUsername(profileData.player.username || null);
           setJoinedAt(profileData.player.created_at || null);
         }
+        setAchievements(achievementsData.achievements ?? []);
       } catch (error) {
         console.error('Failed to fetch profile data:', error);
       } finally {
@@ -256,6 +262,17 @@ export default function ProfilePage() {
           </div>
         </motion.div>
 
+        {/* ── Badge wall ── */}
+        {achievements.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            <AchievementBadgeWall achievements={achievements} />
+          </motion.div>
+        )}
+
         {/* ── Win/Loss visualization ── */}
         {stats && stats.total_matches > 0 && (
           <motion.div
@@ -375,6 +392,17 @@ export default function ProfilePage() {
             </div>
           )}
         </motion.div>
+
+        {/* ── Achievements ── */}
+        {address && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55 }}
+          >
+            <AchievementsPanel walletAddress={address} />
+          </motion.div>
+        )}
 
         {/* ── Faucet card ── */}
         <motion.div

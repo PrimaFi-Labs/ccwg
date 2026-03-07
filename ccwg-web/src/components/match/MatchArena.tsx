@@ -145,6 +145,16 @@ export function MatchArena({
   const [botQuip, setBotQuip] = useState<{ text: string; id: number } | null>(null);
   const botQuipIdRef = useRef(0);
 
+  const [achievementToasts, setAchievementToasts] = useState<Array<{
+    id: number;
+    title: string;
+    description: string;
+    tier: string;
+    badge_icon: string;
+    badge_color: string;
+  }>>([]);
+  const achievementIdRef = useRef(0);
+
   /* ─── screen flash helper ─── */
   const triggerScreenFlash = useCallback((type: 'win' | 'loss' | 'draw') => {
     setScreenFlash(type);
@@ -399,6 +409,13 @@ export function MatchArena({
       const id = ++botQuipIdRef.current;
       setBotQuip({ text: data.message, id });
       botQuipTimerRef.current = setTimeout(() => setBotQuip(null), 6000);
+    },
+    onAchievementUnlocked: (data) => {
+      const toastId = ++achievementIdRef.current;
+      setAchievementToasts((prev) => [...prev, { id: toastId, ...data }]);
+      setTimeout(() => {
+        setAchievementToasts((prev) => prev.filter((t) => t.id !== toastId));
+      }, 5500);
     },
     onError: (error) => {
       console.error('[ERROR]', error);
@@ -1276,6 +1293,48 @@ export function MatchArena({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Achievement unlock toasts */}
+      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none" style={{ maxWidth: '320px' }}>
+        <AnimatePresence>
+          {achievementToasts.map((toast) => (
+            <motion.div
+              key={toast.id}
+              initial={{ opacity: 0, x: 60, scale: 0.92 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 60, scale: 0.92 }}
+              transition={{ duration: 0.3 }}
+              className="rounded-xl border px-3.5 py-3 flex items-start gap-3 shadow-lg"
+              style={{
+                background: 'var(--bg-secondary)',
+                borderColor: `${toast.badge_color}55`,
+                boxShadow: `0 0 18px ${toast.badge_color}30`,
+              }}
+            >
+              <div
+                className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-xl border-2"
+                style={{ borderColor: toast.badge_color, background: `${toast.badge_color}18` }}
+              >
+                {toast.badge_icon}
+              </div>
+              <div className="min-w-0">
+                <p
+                  className="text-[10px] font-bold uppercase tracking-wider mb-0.5"
+                  style={{ color: toast.badge_color }}
+                >
+                  Achievement Unlocked · {toast.tier}
+                </p>
+                <p className="text-sm font-semibold text-[var(--text-primary)] leading-tight">
+                  {toast.title}
+                </p>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5 leading-snug line-clamp-2">
+                  {toast.description}
+                </p>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

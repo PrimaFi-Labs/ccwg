@@ -15,6 +15,7 @@ interface UseMatchWebSocketOptions {
   onOpponentActionLocked?: (data: unknown) => void;
   onMomentumReveal?: (data: unknown) => void;
   onBotMessage?: (data: { message: string; trigger: string; bot_wallet: string }) => void;
+  onAchievementUnlocked?: (data: { achievement_key: string; title: string; description: string; category: string; tier: string; badge_icon: string; badge_color: string }) => void;
   onError?: (error: string) => void;
 }
 
@@ -28,6 +29,7 @@ export function useMatchWebSocket({
   onOpponentActionLocked,
   onMomentumReveal,
   onBotMessage,
+  onAchievementUnlocked,
   onError,
 }: UseMatchWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
@@ -47,6 +49,7 @@ export function useMatchWebSocket({
     onOpponentActionLocked,
     onMomentumReveal,
     onBotMessage,
+    onAchievementUnlocked,
     onError,
   });
 
@@ -59,6 +62,7 @@ export function useMatchWebSocket({
       onOpponentActionLocked,
       onMomentumReveal,
       onBotMessage,
+      onAchievementUnlocked,
       onError,
     };
   }, [
@@ -69,6 +73,7 @@ export function useMatchWebSocket({
     onOpponentActionLocked,
     onMomentumReveal,
     onBotMessage,
+    onAchievementUnlocked,
     onError,
   ]);
 
@@ -200,6 +205,9 @@ export function useMatchWebSocket({
               break;
             case 'bot_message':
               handlersRef.current.onBotMessage?.(message.payload as { message: string; trigger: string; bot_wallet: string });
+              break;
+            case 'achievement_unlocked':
+              handlersRef.current.onAchievementUnlocked?.(message.payload as { achievement_key: string; title: string; description: string; category: string; tier: string; badge_icon: string; badge_color: string });
               break;
             case 'error':
               console.error('Server error:', message.payload.message);

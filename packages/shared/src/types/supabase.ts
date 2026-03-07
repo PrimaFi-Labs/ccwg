@@ -1718,6 +1718,81 @@ export type Database = {
           },
         ]
       }
+      achievement_definitions: {
+        Row: {
+          key: string
+          title: string
+          description: string
+          category: string
+          tier: string
+          badge_icon: string
+          badge_color: string
+          xp_reward: number
+          sp_reward: number
+          created_at: string | null
+        }
+        Insert: {
+          key: string
+          title: string
+          description: string
+          category: string
+          tier: string
+          badge_icon: string
+          badge_color: string
+          xp_reward?: number
+          sp_reward?: number
+          created_at?: string | null
+        }
+        Update: {
+          key?: string
+          title?: string
+          description?: string
+          category?: string
+          tier?: string
+          badge_icon?: string
+          badge_color?: string
+          xp_reward?: number
+          sp_reward?: number
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      player_achievements: {
+        Row: {
+          id: number
+          player_wallet: string
+          achievement_key: string
+          unlocked_at: string
+        }
+        Insert: {
+          id?: number
+          player_wallet: string
+          achievement_key: string
+          unlocked_at?: string
+        }
+        Update: {
+          id?: number
+          player_wallet?: string
+          achievement_key?: string
+          unlocked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_achievements_player_wallet_fkey"
+            columns: ["player_wallet"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["wallet_address"]
+          },
+          {
+            foreignKeyName: "player_achievements_achievement_key_fkey"
+            columns: ["achievement_key"]
+            isOneToOne: false
+            referencedRelation: "achievement_definitions"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

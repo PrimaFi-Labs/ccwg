@@ -70,6 +70,7 @@ export type {
   ErrorMessage,
   BotMessageMessage,
   BotDialogueTrigger,
+  AchievementUnlockedMessage,
 } from './types/websocket';
 
 export type {

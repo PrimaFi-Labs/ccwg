@@ -23,8 +23,10 @@ import type {
   MatchEndMessage,
   BotMessageMessage,
   BotDialogueTrigger,
+  AchievementUnlockedMessage,
 } from '@ccwg/shared';
 import { pickBotLine } from './bot-dialogue';
+import { AchievementService, type MatchAchievementContext } from './achievement-service';
 
 const ROUND_DURATION_MS = 60_000;
 const SNAPSHOT_DISPLAY_DELAY_MS = 2500;
@@ -182,6 +184,7 @@ export class MatchOrchestrator {
   private eveEngine: EVEAIEngine;
   private litTraderEngine: LitTraderAIEngine;
   private settlementService: SettlementService;
+  private achievementService: AchievementService;
   private activeMatches: Map<number, ActiveMatch>;
   private oracleSystem: OracleSystemContractServer;
   private combatEngine: CombatEngine;
@@ -202,6 +205,7 @@ export class MatchOrchestrator {
       await this.handleAIAction(args.matchId, args.roundNumber, args.playerWallet, args.action, args.clientNonce);
     });
     this.settlementService = new SettlementService(this.supabase);
+    this.achievementService = new AchievementService(this.supabase);
     this.activeMatches = new Map();
     this.oracleSystem = new OracleSystemContractServer();
     this.combatEngine = new CombatEngine();
@@ -2122,6 +2126,82 @@ export class MatchOrchestrator {
         : winner === match.player_1 ? 'match_lost'
         : 'match_draw';
       this.emitBotMessage(matchId, match.player_2, matchTrigger, botName);
+    }
+
+    // Check and emit any newly-unlocked achievements BEFORE match_end so
+    // clients are still connected when they receive the notifications.
+    {
+      const aiWallet = '0x4149';
+      const humanWallets = ([match.player_1, match.player_2] as Array<string | null>).filter(
+        (w): w is string => typeof w === 'string' && w.toLowerCase() !== aiWallet
+      );
+      const activeMatchForAchv = this.activeMatches.get(matchId);
+      if (activeMatchForAchv && humanWallets.length > 0) {
+        const botName = match.mode === 'VsAI' ? await this.getBotName(matchId) : undefined;
+        for (const playerWallet of humanWallets) {
+          try {
+            const playerRoundsWon =
+              playerWallet === match.player_1
+                ? (match.p1_rounds_won ?? 0)
+                : (match.p2_rounds_won ?? 0);
+            const opponentRoundsWon =
+              playerWallet === match.player_1
+                ? (match.p2_rounds_won ?? 0)
+                : (match.p1_rounds_won ?? 0);
+
+            const { data: actions } = await this.supabase
+              .from('match_actions')
+              .select('action, round_number')
+              .eq('match_id', matchId)
+              .eq('player_wallet', playerWallet);
+
+            const usedCharge = (actions ?? []).some((a) => a.action === 'Charge');
+            const defendedRound1 = (actions ?? []).some(
+              (a) => a.round_number === 1 && a.action === 'Defend'
+            );
+
+            const ctx: MatchAchievementContext = {
+              matchId,
+              playerWallet,
+              mode: match.mode,
+              isWinner: winner === playerWallet,
+              playerRoundsWon,
+              opponentRoundsWon,
+              totalRounds: match.total_rounds,
+              botName,
+              usedCharge,
+              defendedRound1,
+            };
+
+            const unlocks = await this.achievementService.checkMatchAchievements(ctx);
+            const playerWs = activeMatchForAchv.players.get(playerWallet);
+            if (playerWs && unlocks.length > 0) {
+              for (const acv of unlocks) {
+                const msg: AchievementUnlockedMessage = {
+                  type: 'achievement_unlocked',
+                  payload: {
+                    match_id: matchId,
+                    player_wallet: playerWallet,
+                    achievement_key: acv.key,
+                    title: acv.title,
+                    description: acv.description,
+                    category: acv.category,
+                    tier: acv.tier,
+                    badge_icon: acv.badge_icon,
+                    badge_color: acv.badge_color,
+                  },
+                };
+                this.sendMessage(playerWs, msg);
+              }
+            }
+          } catch (achvErr) {
+            console.error(
+              `[ACHIEVEMENT] Failed to check achievements for ${playerWallet}:`,
+              achvErr
+            );
+          }
+        }
+      }
     }
 
     this.broadcastToMatch(matchId, message);
