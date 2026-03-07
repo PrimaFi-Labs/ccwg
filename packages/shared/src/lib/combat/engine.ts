@@ -171,8 +171,9 @@ export class CombatEngine {
       else if (effectiveDamageByPlayer < effectiveDamageByOpponent) forcedWinner = 'opponent';
       else forcedWinner = null;
     } else if (playerActionResolved === 'Defend' && opponentActionResolved === 'Defend') {
-      if (effectiveDamageByPlayer < effectiveDamageByOpponent) forcedWinner = 'player';
-      else if (effectiveDamageByPlayer > effectiveDamageByOpponent) forcedWinner = 'opponent';
+      // Winner = whoever takes less damage (deals more to the opponent)
+      if (effectiveDamageByPlayer > effectiveDamageByOpponent) forcedWinner = 'player';
+      else if (effectiveDamageByPlayer < effectiveDamageByOpponent) forcedWinner = 'opponent';
       else forcedWinner = null;
     } else if (playerActionResolved === 'Attack' && opponentActionResolved === 'Defend') {
       if (effectiveDamageByPlayer > effectiveDamageByOpponent) forcedWinner = 'player';
