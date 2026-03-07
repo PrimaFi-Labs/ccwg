@@ -5,12 +5,12 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, X, Zap, Trash2 } from 'lucide-react';
+import { Plus, X, Zap, Trash2, Upload } from 'lucide-react';
 import { strkToWei, formatStrk } from '@/src/lib/cartridge/utils';
 
 interface CreateMarketItemFormProps {
   onSuccess: () => void;
-  cardTemplates: Array<{ template_id: number; name: string; rarity: string }>;
+  cardTemplates: Array<{ template_id: number; name: string; rarity: string; image_url: string | null }>;
 }
 
 export function CreateMarketItemForm({ onSuccess, cardTemplates }: CreateMarketItemFormProps) {
@@ -28,9 +28,32 @@ export function CreateMarketItemForm({ onSuccess, cardTemplates }: CreateMarketI
   const [cardWeights, setCardWeights] = useState<Record<string, number>>({});
   const [revealAnimation, setRevealAnimation] = useState(true);
   const [imagePublicId, setImagePublicId] = useState('');
+  const [packImageUploading, setPackImageUploading] = useState(false);
   const [perWalletLimit, setPerWalletLimit] = useState<string>('');
   const [durationHours, setDurationHours] = useState<string>('');
   const [singleCardId, setSingleCardId] = useState<number | ''>('');
+
+  const handlePackImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPackImageUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', 'MARKET');
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (res.ok && data.publicId) {
+        setImagePublicId(data.publicId);
+      } else {
+        setError(data.error || 'Image upload failed');
+      }
+    } catch {
+      setError('Image upload failed');
+    } finally {
+      setPackImageUploading(false);
+    }
+  };
 
   const handleAddPossibleCard = (templateId: number) => {
     if (!possibleCards.includes(templateId)) {
@@ -100,7 +123,9 @@ export function CreateMarketItemForm({ onSuccess, cardTemplates }: CreateMarketI
         card_weights: Object.keys(cardWeights).length > 0 ? cardWeights : null,
         per_wallet_limit: perWalletLimit ? parseInt(perWalletLimit) : null,
         duration_hours: durationHours ? parseInt(durationHours) : null,
-        image_public_id: imagePublicId || null,
+        image_public_id: itemType === 'single_card'
+          ? (cardTemplates.find(t => t.template_id === singleCardId)?.image_url || null)
+          : (imagePublicId || null),
         reveal_animation: revealAnimation,
       };
 
@@ -127,6 +152,7 @@ export function CreateMarketItemForm({ onSuccess, cardTemplates }: CreateMarketI
       setGuaranteedCards([]);
       setCardWeights({});
       setImagePublicId('');
+      setPackImageUploading(false);
       setPerWalletLimit('');
       setDurationHours('');
       setSingleCardId('');
@@ -161,6 +187,7 @@ export function CreateMarketItemForm({ onSuccess, cardTemplates }: CreateMarketI
               setPossibleCards([]);
               setGuaranteedCards([]);
               setCardWeights({});
+              setImagePublicId('');
             }}
             className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
               itemType === 'single_card'
@@ -379,16 +406,40 @@ export function CreateMarketItemForm({ onSuccess, cardTemplates }: CreateMarketI
       {/* Image, Animation, Limits */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-semibold text-gray-300 mb-2">
-            Image Public ID (Cloudinary)
-          </label>
-          <input
-            type="text"
-            value={imagePublicId}
-            onChange={(e) => setImagePublicId(e.target.value)}
-            placeholder="ccwg/packs/starter"
-            className="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none"
-          />
+          {itemType === 'pack' ? (
+            <>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                Pack Cover Image
+              </label>
+              <label className={`flex items-center justify-center gap-2 w-full px-4 py-3 bg-gray-700 rounded-lg border border-dashed transition-colors ${
+                packImageUploading ? 'border-gray-600 opacity-60 cursor-not-allowed' : 'border-gray-500 hover:border-purple-400 cursor-pointer'
+              }`}>
+                <Upload className="w-4 h-4 text-gray-400" />
+                <span className="text-sm text-gray-300">
+                  {packImageUploading ? 'Uploading...' : imagePublicId ? 'Change image' : 'Upload cover'}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={packImageUploading}
+                  onChange={handlePackImageUpload}
+                />
+              </label>
+              {imagePublicId && (
+                <p className="text-xs text-green-400 mt-1 truncate">✓ {imagePublicId}</p>
+              )}
+            </>
+          ) : (
+            <>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                Cover Image
+              </label>
+              <p className="text-sm text-gray-400 px-4 py-3 bg-gray-700 rounded-lg border border-gray-600">
+                Auto-set from selected card template
+              </p>
+            </>
+          )}
         </div>
 
         <div className="flex items-end">
