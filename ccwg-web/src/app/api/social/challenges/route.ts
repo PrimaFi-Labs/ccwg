@@ -134,11 +134,15 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (await isPlayerBusyInAnotherMatch(supabase as any, wallet)) {
-        return NextResponse.json({ error: 'Finish your active match before sending a challenge.' }, { status: 409 });
+      const senderBlockingMatchId = await isPlayerBusyInAnotherMatch(supabase as any, wallet);
+      if (senderBlockingMatchId !== false) {
+        return NextResponse.json(
+          { error: 'Finish your active match before sending a challenge.', blocking_match_id: senderBlockingMatchId },
+          { status: 409 }
+        );
       }
 
-      if (await isPlayerBusyInAnotherMatch(supabase as any, targetWallet)) {
+      if ((await isPlayerBusyInAnotherMatch(supabase as any, targetWallet)) !== false) {
         return NextResponse.json({ error: 'That friend is already in another match.' }, { status: 409 });
       }
 
@@ -279,16 +283,16 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Your friend is offline now.' }, { status: 409 });
         }
 
-        if (await isPlayerBusyInAnotherMatch(supabase as any, wallet, challenge.match_id)) {
-          return NextResponse.json({ error: 'Finish your active match before accepting this challenge.' }, { status: 409 });
+        const accepterBlockingMatchId = await isPlayerBusyInAnotherMatch(supabase as any, wallet, challenge.match_id);
+        if (accepterBlockingMatchId !== false) {
+          return NextResponse.json(
+            { error: 'Finish your active match before accepting this challenge.', blocking_match_id: accepterBlockingMatchId },
+            { status: 409 }
+          );
         }
 
         if (
-          await isPlayerBusyInAnotherMatch(
-            supabase as any,
-            challenge.inviter_wallet,
-            challenge.match_id
-          )
+          (await isPlayerBusyInAnotherMatch(supabase as any, challenge.inviter_wallet, challenge.match_id)) !== false
         ) {
           return NextResponse.json({ error: 'Your friend is already in another match.' }, { status: 409 });
         }

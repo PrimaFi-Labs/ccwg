@@ -77,6 +77,8 @@ export function SocialPanel({ walletAddress }: { walletAddress: string }) {
   const [feedback, setFeedback] = useState<{ tone: 'error' | 'success' | 'info'; text: string } | null>(null);
   const [waitingChallenge, setWaitingChallenge] = useState<WaitingChallengeState | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [blockingMatchId, setBlockingMatchId] = useState<number | null>(null);
+  const [quittingMatch, setQuittingMatch] = useState(false);
 
   const loadOverview = useCallback(async () => {
     try {
@@ -136,7 +138,13 @@ export function SocialPanel({ walletAddress }: { walletAddress: string }) {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Challenge action failed');
+      if (!res.ok) {
+        if (data?.blocking_match_id) {
+          setBlockingMatchId(data.blocking_match_id as number);
+          return null;
+        }
+        throw new Error(data?.error || 'Challenge action failed');
+      }
       await loadOverview();
       setFeedback({ tone: 'success', text: successText });
       if (routeToMatch && data?.match_id) {
@@ -149,6 +157,25 @@ export function SocialPanel({ walletAddress }: { walletAddress: string }) {
       return null;
     } finally {
       setBusyKey(null);
+    }
+  };
+
+  const handleQuitBlockingMatch = async () => {
+    if (!blockingMatchId) return;
+    setQuittingMatch(true);
+    try {
+      const res = await fetch(`/api/matches/${blockingMatchId}/forfeit`, { method: 'POST' });
+      if (!res.ok) {
+        const data = await res.json();
+        setFeedback({ tone: 'error', text: data?.error || 'Failed to quit match.' });
+        return;
+      }
+      setBlockingMatchId(null);
+      setFeedback({ tone: 'success', text: 'Match quit. You can now send a challenge.' });
+    } catch {
+      setFeedback({ tone: 'error', text: 'Failed to quit match.' });
+    } finally {
+      setQuittingMatch(false);
     }
   };
 
@@ -321,6 +348,36 @@ export function SocialPanel({ walletAddress }: { walletAddress: string }) {
             </span>
           ) : null}
         </div>
+
+        {blockingMatchId && (
+          <div
+            className="rounded-lg border px-4 py-3 space-y-2"
+            style={{ borderColor: 'rgba(251,191,36,0.4)', background: 'rgba(251,191,36,0.08)' }}
+          >
+            <p className="text-sm font-semibold text-amber-300">You have an ongoing match</p>
+            <p className="text-xs text-[var(--text-muted)]">
+              Quit that match to send a new challenge. You will forfeit and your opponent will win.
+            </p>
+            <div className="flex gap-2">
+              <button
+                disabled={quittingMatch}
+                onClick={() => void handleQuitBlockingMatch()}
+                className="flex-1 rounded-lg py-2 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ background: 'rgba(239,68,68,0.2)', color: '#fca5a5' }}
+              >
+                {quittingMatch ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                {quittingMatch ? 'Quitting...' : 'Quit that match'}
+              </button>
+              <button
+                onClick={() => setBlockingMatchId(null)}
+                className="px-3 rounded-lg text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                style={{ background: 'var(--bg-tertiary)' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         {feedback && (
           <div

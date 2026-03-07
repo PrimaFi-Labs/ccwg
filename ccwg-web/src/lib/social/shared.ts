@@ -136,11 +136,12 @@ export async function expireStaleChallenges(supabase: any) {
   }
 }
 
+/** Returns the blocking match_id (number) if the player is busy, or false if free. */
 export async function isPlayerBusyInAnotherMatch(
   supabase: any,
   wallet: string,
   excludeMatchId: number | null = null
-) {
+): Promise<number | false> {
   const normalized = wallet.toLowerCase();
   const { data: playerRows } = await supabase
     .from('match_players')
@@ -162,8 +163,8 @@ export async function isPlayerBusyInAnotherMatch(
 
   if (!matches || matches.length === 0) return false;
 
-  const nonChallengeBusy = matches.some((row: { mode?: string | null }) => row.mode !== 'Challenge');
-  if (nonChallengeBusy) return true;
+  const nonChallengeMatch = matches.find((row: { mode?: string | null }) => row.mode !== 'Challenge');
+  if (nonChallengeMatch) return nonChallengeMatch.match_id as number;
 
   const challengeMatchIds = matches
     .map((row: { match_id: number | null; mode?: string | null }) =>
@@ -204,7 +205,7 @@ export async function isPlayerBusyInAnotherMatch(
     if (invite.status === 'Accepted') {
       const matchStatus = matchStatusById.get(matchId);
       // If the match is InProgress it's genuinely active — player is busy
-      if (matchStatus === 'InProgress' || matchStatus === 'PausedOracle') return true;
+      if (matchStatus === 'InProgress' || matchStatus === 'PausedOracle') return matchId;
 
       // WaitingForOpponent + Accepted invite: only busy if recently accepted
       const respondedAtMs = invite.responded_at ? new Date(invite.responded_at).getTime() : 0;
@@ -215,7 +216,7 @@ export async function isPlayerBusyInAnotherMatch(
         staleMatchIds.push(matchId);
         continue;
       }
-      return true;
+      return matchId;
     }
 
     if (invite.status !== 'Pending') continue;
@@ -224,7 +225,7 @@ export async function isPlayerBusyInAnotherMatch(
     const createdAtMs = invite.created_at ? new Date(invite.created_at).getTime() : Number.POSITIVE_INFINITY;
     const cappedExpiryMs = createdAtMs + CHALLENGE_EXPIRY_MS;
     const effectiveExpiryMs = Math.min(expiresAtMs, cappedExpiryMs);
-    if (Number.isFinite(effectiveExpiryMs) && nowMs <= effectiveExpiryMs) return true;
+    if (Number.isFinite(effectiveExpiryMs) && nowMs <= effectiveExpiryMs) return matchId;
   }
 
   // Asynchronously cancel stale challenge matches that never started
