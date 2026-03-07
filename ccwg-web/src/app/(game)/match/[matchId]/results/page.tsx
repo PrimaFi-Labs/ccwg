@@ -36,6 +36,20 @@ export default function MatchResultsPage() {
   const tournamentEventId = searchParams.get('eventId');
   const [tournamentName, setTournamentName] = useState<string | null>(null);
   const [expandedRound, setExpandedRound] = useState<number | null>(null);
+
+  type BotQuipState = { message: string; trigger: string; botName: string | null } | null;
+  const [botQuip] = useState<BotQuipState>(() => {
+    try {
+      const quipRaw = sessionStorage.getItem(`ccwg:match:${matchId}:botFinalQuip`);
+      const nameRaw = sessionStorage.getItem(`ccwg:match:${matchId}:botName`);
+      if (quipRaw) {
+        const parsed = JSON.parse(quipRaw) as { message: string; trigger: string };
+        return { ...parsed, botName: nameRaw ?? null };
+      }
+    } catch { /* non-critical */ }
+    return null;
+  });
+  const [botQuipVisible, setBotQuipVisible] = useState(false);
   const [logs] = useState<RoundLog[]>(() => {
     try {
       const stored = sessionStorage.getItem(`ccwg:match:${matchId}:roundLogs`);
@@ -72,6 +86,13 @@ export default function MatchResultsPage() {
     void loadTournament();
   }, [tournamentEventId]);
 
+  // Reveal bot bubble after the hero card animation settles
+  useEffect(() => {
+    if (!botQuip) return;
+    const t = setTimeout(() => setBotQuipVisible(true), 1200);
+    return () => clearTimeout(t);
+  }, [botQuip]);
+
   const summary = useMemo(() => {
     let myDamageDealt = 0;
     let myDamageReceived = 0;
@@ -102,6 +123,24 @@ export default function MatchResultsPage() {
     : matchOutcome === 'LOSS'
       ? 'rgba(239,68,68,0.08)'
       : 'rgba(234,179,8,0.08)';
+
+  const getBotEmoji = (name: string | null, trigger: string): string => {
+    const n = name ?? '';
+    if (trigger === 'match_won') {
+      if (n === 'E.V.E') return '🤖';
+      if (n === 'Lit Trader') return '📈';
+      return '🏆';
+    }
+    if (trigger === 'match_lost') {
+      if (n === 'E.V.E') return '😑';
+      if (n === 'Lit Trader') return '📉';
+      return '💪';
+    }
+    // draw
+    if (n === 'E.V.E') return '⚖️';
+    if (n === 'Lit Trader') return '↔️';
+    return '🤝';
+  };
 
   return (
     <div className="min-h-screen p-4 sm:p-6" style={{ background: 'var(--bg-primary)' }}>
@@ -201,6 +240,61 @@ export default function MatchResultsPage() {
             ))}
           </motion.div>
         </motion.div>
+
+        {/* === BOT CLOSING LINE === */}
+        <AnimatePresence>
+          {botQuip && botQuipVisible && (
+            <motion.div
+              key="bot-quip"
+              initial={{ opacity: 0, y: 16, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              className="rounded-2xl border overflow-hidden"
+              style={{
+                background: 'var(--bg-panel)',
+                borderColor: 'var(--border-base)',
+              }}
+            >
+              <div className="flex items-start gap-4 px-5 py-5">
+                {/* Bot avatar circle */}
+                <div
+                  className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-xl"
+                  style={{
+                    background: 'var(--bg-secondary)',
+                    border: '1.5px solid var(--border-accent)',
+                    boxShadow: '0 0 12px var(--accent-primary-glow)',
+                  }}
+                >
+                  {getBotEmoji(botQuip.botName, botQuip.trigger)}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold mb-1" style={{ color: 'var(--accent-primary)' }}>
+                    {botQuip.botName ?? 'Bot'}
+                  </p>
+                  {/* Speech bubble */}
+                  <div
+                    className="relative rounded-xl rounded-tl-none px-4 py-3 text-sm leading-relaxed"
+                    style={{
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-base)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    <motion.span
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.2, duration: 0.4 }}
+                    >
+                      {botQuip.message}
+                    </motion.span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* === BATTLE CHRONICLE === */}
         <motion.div

@@ -2113,9 +2113,8 @@ export class MatchOrchestrator {
       },
     };
 
-    this.broadcastToMatch(matchId, message);
-
-    // Emit bot match-end dialogue before cleaning up the active match
+    // Emit bot match-end dialogue BEFORE match_end so the client receives it
+    // while the component is still mounted and can persist it to sessionStorage.
     if (match.mode === 'VsAI' && match.player_2) {
       const botName = await this.getBotName(matchId);
       const matchTrigger: BotDialogueTrigger =
@@ -2124,6 +2123,8 @@ export class MatchOrchestrator {
         : 'match_draw';
       this.emitBotMessage(matchId, match.player_2, matchTrigger, botName);
     }
+
+    this.broadcastToMatch(matchId, message);
 
     if (winner) {
       try {

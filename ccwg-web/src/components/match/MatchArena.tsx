@@ -382,6 +382,19 @@ export function MatchArena({
       router.push(`/match/${match.match_id}/results${suffix}`);
     },
     onBotMessage: (data) => {
+      // Persist match-end lines so the results page can display them
+      if (
+        data.trigger === 'match_won' ||
+        data.trigger === 'match_lost' ||
+        data.trigger === 'match_draw'
+      ) {
+        try {
+          sessionStorage.setItem(
+            `ccwg:match:${match.match_id}:botFinalQuip`,
+            JSON.stringify({ message: data.message, trigger: data.trigger })
+          );
+        } catch { /* non-critical */ }
+      }
       if (botQuipTimerRef.current) clearTimeout(botQuipTimerRef.current);
       const id = ++botQuipIdRef.current;
       setBotQuip({ text: data.message, id });
@@ -408,6 +421,15 @@ export function MatchArena({
       }
     } catch { /* non-critical */ }
   }, [match.match_id]);
+
+  // Persist bot identity for the results page
+  useEffect(() => {
+    if (isVsAI && opponentName) {
+      try {
+        sessionStorage.setItem(`ccwg:match:${match.match_id}:botName`, opponentName);
+      } catch { /* non-critical */ }
+    }
+  }, [isVsAI, match.match_id, opponentName]);
 
   useEffect(() => {
     return () => {
