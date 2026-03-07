@@ -48,13 +48,11 @@ export function CardDisplay({
   }
 
   // Detect and log any null stats so we know which templates have incomplete data
-  if (template.base_power == null || template.base_defense == null || template.base_focus == null) {
+  if (template.base_focus == null) {
     console.warn('[CardDisplay] Template has null stat(s) — falling back to base value.', {
       templateId: template.template_id,
       name: template.name,
       asset: template.asset,
-      base_power: template.base_power,
-      base_defense: template.base_defense,
       base_focus: template.base_focus,
       base: template.base,
     });

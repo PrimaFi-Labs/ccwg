@@ -41,7 +41,6 @@ type CardTemplateRow = {
   asset: string;
   name: string;
   base: number;
-  base_power: number | null;
   attack_affinity: number;
   defense_affinity: number;
   charge_affinity: number | null;
@@ -907,7 +906,7 @@ export class EVEAIEngine {
       const { data: allTemplates } = await this.supabase
         .from('card_templates')
         .select(
-          'template_id, asset, name, base, base_power, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id'
+          'template_id, asset, name, base, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id'
         )
         .eq('is_ai_card', true)
         .returns<CardTemplateRow[]>();
@@ -920,7 +919,7 @@ export class EVEAIEngine {
         const { data: fallback } = await this.supabase
           .from('card_templates')
           .select(
-            'template_id, asset, name, base, base_power, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id'
+            'template_id, asset, name, base, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id'
           )
           .returns<CardTemplateRow[]>();
         templates = fallback ?? [];
@@ -959,7 +958,7 @@ export class EVEAIEngine {
   }
 
   private scoreTemplate(t: CardTemplateRow): number {
-    const basePower = t.base_power ?? t.base;
+    const basePower = t.base;
     const attack = t.attack_affinity;
     const defense = t.defense_affinity;
     const charge = t.charge_affinity ?? 0;
@@ -1171,7 +1170,7 @@ export class EVEAIEngine {
       const { data: deckCards } = await this.supabase
         .from('bot_cards')
         .select(
-          'id, template_id, template:card_templates(template_id, asset, name, base, base_power, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id)'
+          'id, template_id, template:card_templates(template_id, asset, name, base, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id)'
         )
         .in('id', options);
 
@@ -1204,7 +1203,6 @@ export class EVEAIEngine {
             asset: string;
             name: string;
             base: number;
-            base_power: number | null;
             attack_affinity: number;
             defense_affinity: number;
             charge_affinity: number;
@@ -1213,7 +1211,7 @@ export class EVEAIEngine {
           };
 
           let score = 0;
-          const basePower = t.base_power ?? t.base;
+          const basePower = t.base;
 
           // Base power is always valuable
           score += basePower * 0.3;

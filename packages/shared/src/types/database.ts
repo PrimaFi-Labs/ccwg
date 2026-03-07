@@ -35,8 +35,6 @@ export interface CardTemplate {
   attack_affinity: number;
   defense_affinity: number;
   charge_affinity: number;
-  base_power?: number;
-  base_defense?: number;
   base_focus?: number;
   volatility_sensitivity: number;
   ability_id: string;

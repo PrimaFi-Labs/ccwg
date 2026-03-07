@@ -48,8 +48,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Ability not found' }, { status: 404 });
     }
 
-    const base_power = validated.base + validated.attack_affinity;
-    const base_defense = validated.base + validated.defense_affinity;
     const base_focus = validated.base + validated.charge_affinity;
 
     // Create template
@@ -63,8 +61,6 @@ export async function POST(request: NextRequest) {
         attack_affinity: validated.attack_affinity,
         defense_affinity: validated.defense_affinity,
         charge_affinity: validated.charge_affinity,
-        base_power,
-        base_defense,
         base_focus,
         volatility_sensitivity: validated.volatility_sensitivity,
         ability_id: validated.ability_id,
@@ -132,9 +128,11 @@ export async function PATCH(request: NextRequest) {
       typeof resolvedUpdates.charge_affinity === 'number';
 
     const hasLegacyStats =
-      typeof resolvedUpdates.base_power === 'number' ||
-      typeof resolvedUpdates.base_defense === 'number' ||
       typeof resolvedUpdates.base_focus === 'number';
+
+    // Remove any stale legacy keys the client may still send
+    delete resolvedUpdates.base_power;
+    delete resolvedUpdates.base_defense;
 
     if (hasNewStats) {
       const base =
@@ -156,30 +154,15 @@ export async function PATCH(request: NextRequest) {
       resolvedUpdates.attack_affinity = attack_affinity;
       resolvedUpdates.defense_affinity = defense_affinity;
       resolvedUpdates.charge_affinity = charge_affinity;
-      resolvedUpdates.base_power = base + attack_affinity;
-      resolvedUpdates.base_defense = base + defense_affinity;
       resolvedUpdates.base_focus = base + (charge_affinity ?? 0);
     } else if (hasLegacyStats) {
-      const base_power =
-        typeof resolvedUpdates.base_power === 'number'
-          ? resolvedUpdates.base_power
-          : before.base_power;
-      const base_defense =
-        typeof resolvedUpdates.base_defense === 'number'
-          ? resolvedUpdates.base_defense
-          : before.base_defense;
       const base_focus =
         typeof resolvedUpdates.base_focus === 'number'
           ? resolvedUpdates.base_focus
           : before.base_focus;
 
-      const avg = Math.round(((base_power ?? 0) + (base_defense ?? 0) + (base_focus ?? 0)) / 3);
-      resolvedUpdates.base = avg;
-      resolvedUpdates.attack_affinity = (base_power ?? 0) - avg;
-      resolvedUpdates.defense_affinity = (base_defense ?? 0) - avg;
-      resolvedUpdates.charge_affinity = (base_focus ?? 0) - avg;
-      resolvedUpdates.base_power = base_power ?? 0;
-      resolvedUpdates.base_defense = base_defense ?? 0;
+      const base = before.base ?? 0;
+      resolvedUpdates.charge_affinity = (base_focus ?? 0) - base;
       resolvedUpdates.base_focus = base_focus ?? 0;
     }
 

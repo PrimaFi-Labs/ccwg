@@ -70,9 +70,6 @@ type PlayerCardWithFullTemplate = {
     attack_affinity: number;
     defense_affinity: number;
     charge_affinity: number;
-    base_power: number | null;
-    base_defense: number | null;
-    base_focus: number | null;
     volatility_sensitivity: number;
     ability_id: string;
     image_url: string | null;
@@ -97,9 +94,6 @@ type BotCardWithTemplate = {
     attack_affinity: number;
     defense_affinity: number;
     charge_affinity: number;
-    base_power: number | null;
-    base_defense: number | null;
-    base_focus: number | null;
     volatility_sensitivity: number;
     ability_id: string;
     image_url: string | null;
@@ -141,7 +135,6 @@ type TemplateStats = {
   template_id: number;
   asset: CardAsset;
   base: number;
-  base_power?: number | null;
   attack_affinity: number;
   defense_affinity: number;
   charge_affinity: number;
@@ -364,7 +357,7 @@ export class MatchOrchestrator {
 
     const { data: preferredTemplates } = await this.supabase
       .from('card_templates')
-      .select('template_id, asset, base, base_power, attack_affinity, defense_affinity, charge_affinity')
+      .select('template_id, asset, base, attack_affinity, defense_affinity, charge_affinity')
       .eq('is_ai_card', true)
       .in('asset', assets as CardAsset[]);
 
@@ -377,7 +370,6 @@ export class MatchOrchestrator {
         template_id: number;
         asset: CardAsset;
         base: number;
-        base_power: number | null;
         attack_affinity: number;
         defense_affinity: number;
         charge_affinity: number | null;
@@ -387,7 +379,7 @@ export class MatchOrchestrator {
     if (preferredTemplateIds.length > 0) {
       const { data } = await this.supabase
         .from('bot_cards')
-        .select('id, template:card_templates(template_id, asset, base, base_power, attack_affinity, defense_affinity, charge_affinity)')
+        .select('id, template:card_templates(template_id, asset, base, attack_affinity, defense_affinity, charge_affinity)')
         .in('template_id', preferredTemplateIds);
       templates = data ?? [];
     }
@@ -399,7 +391,7 @@ export class MatchOrchestrator {
 
       const { data: fallbackTemplates } = await this.supabase
         .from('card_templates')
-        .select('template_id, asset, base, base_power, attack_affinity, defense_affinity, charge_affinity')
+        .select('template_id, asset, base, attack_affinity, defense_affinity, charge_affinity')
         .eq('is_ai_card', true)
         .order('template_id', { ascending: true });
 
@@ -418,7 +410,7 @@ export class MatchOrchestrator {
 
       const { data: anyTemplates } = await this.supabase
         .from('card_templates')
-        .select('template_id, asset, base, base_power, attack_affinity, defense_affinity, charge_affinity')
+        .select('template_id, asset, base, attack_affinity, defense_affinity, charge_affinity')
         .order('template_id', { ascending: true });
 
       if (!anyTemplates || anyTemplates.length === 0) {
@@ -433,7 +425,7 @@ export class MatchOrchestrator {
 
       const { data: refreshed } = await this.supabase
         .from('bot_cards')
-        .select('id, template:card_templates(template_id, asset, base, base_power, attack_affinity, defense_affinity, charge_affinity)')
+        .select('id, template:card_templates(template_id, asset, base, attack_affinity, defense_affinity, charge_affinity)')
         .in('template_id', supplemental.map((t) => t.template_id));
 
       templates = [...templates, ...(refreshed ?? [])] as typeof templates;
@@ -450,20 +442,16 @@ export class MatchOrchestrator {
           template_id: number;
           asset: CardAsset;
           base: number;
-          base_power: number | null;
           attack_affinity: number;
           defense_affinity: number;
           charge_affinity: number | null;
         };
         const weights = this.getBotWeights(botStyle);
-        const basePower = Number.isFinite(cardTemplate.base_power ?? NaN)
-          ? (cardTemplate.base_power as number)
-          : cardTemplate.base;
         const score =
           cardTemplate.attack_affinity * weights.attack +
           cardTemplate.defense_affinity * weights.defense +
           (cardTemplate.charge_affinity ?? 0) * weights.charge +
-          basePower * weights.base;
+          cardTemplate.base * weights.base;
         return { template, score };
       });
 
@@ -1296,7 +1284,7 @@ export class MatchOrchestrator {
     if (!swapLocked) {
       const { data: deckCards } = await this.supabase
         .from('bot_cards')
-        .select('id, template:card_templates(base, base_power, attack_affinity, defense_affinity, charge_affinity)')
+        .select('id, template:card_templates(base, attack_affinity, defense_affinity, charge_affinity)')
         .in('id', options);
 
       if (deckCards && deckCards.length > 0) {
@@ -1306,19 +1294,15 @@ export class MatchOrchestrator {
           .map((c) => {
             const template = c.template as {
               base: number;
-              base_power: number | null;
               attack_affinity: number;
               defense_affinity: number;
               charge_affinity: number;
             };
-            const basePower = Number.isFinite(template.base_power ?? NaN)
-              ? (template.base_power as number)
-              : template.base;
             const score =
               template.attack_affinity * weights.attack +
               template.defense_affinity * weights.defense +
               template.charge_affinity * weights.charge +
-              basePower * weights.base;
+              template.base * weights.base;
             return { id: c.id as number, score: Math.max(0, score) };
           });
 
@@ -1409,11 +1393,16 @@ export class MatchOrchestrator {
 
     const { data: match } = await this.supabase
       .from('matches')
-      .select('player_1, player_2, mode')
+      .select('player_1, player_2, mode, status')
       .eq('match_id', matchId)
-      .single<Pick<MatchesRow, 'player_1' | 'player_2' | 'mode'>>();
+      .single<Pick<MatchesRow, 'player_1' | 'player_2' | 'mode' | 'status'>>();
 
     if (!match) return;
+    if (match.status === 'Completed' || match.status === 'Cancelled') {
+      if (activeMatch.roundTimer) clearTimeout(activeMatch.roundTimer);
+      this.activeMatches.delete(matchId);
+      return;
+    }
     if (match.mode === 'VsAI') return;
 
     const players = [match.player_1, match.player_2].filter(Boolean) as string[];
@@ -1459,6 +1448,11 @@ export class MatchOrchestrator {
       .single<MatchRow>();
 
     if (!match) return;
+
+    if (match.status === 'Completed' || match.status === 'Cancelled') {
+      this.activeMatches.delete(matchId);
+      return;
+    }
 
     const { data: round } = await this.supabase
       .from('match_rounds')
@@ -1595,7 +1589,7 @@ export class MatchOrchestrator {
       ? await this.supabase
           .from('player_cards')
           .select(
-            'id, owner_wallet, template:card_templates(template_id, asset, base, base_power, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id)'
+            'id, owner_wallet, template:card_templates(template_id, asset, base, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id)'
           )
           .in('id', playerCardIds)
           .returns<{ id: number; owner_wallet: string; template: TemplateStats | null }[]>()
@@ -1605,7 +1599,7 @@ export class MatchOrchestrator {
       ? await this.supabase
           .from('bot_cards')
           .select(
-            'id, template:card_templates(template_id, asset, base, base_power, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id)'
+            'id, template:card_templates(template_id, asset, base, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id)'
           )
           .in('id', botCardIds)
           .returns<{ id: number; template: TemplateStats | null }[]>()
@@ -2010,6 +2004,13 @@ export class MatchOrchestrator {
       .single<MatchRow>();
 
     if (!match) return;
+
+    if (match.status === 'Completed' || match.status === 'Cancelled') {
+      const activeMatch = this.activeMatches.get(matchId);
+      if (activeMatch?.roundTimer) clearTimeout(activeMatch.roundTimer);
+      this.activeMatches.delete(matchId);
+      return;
+    }
 
     const transcriptHash = await this.settlementService.generateTranscriptHash(matchId);
 

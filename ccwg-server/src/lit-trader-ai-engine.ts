@@ -33,7 +33,6 @@ type CardTemplateRow = {
   asset: string;
   name: string;
   base: number;
-  base_power: number | null;
   attack_affinity: number;
   defense_affinity: number;
   charge_affinity: number | null;
@@ -315,7 +314,7 @@ export class LitTraderAIEngine {
       const { data: allTemplates } = await this.supabase
         .from('card_templates')
         .select(
-          'template_id, asset, name, base, base_power, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id'
+          'template_id, asset, name, base, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id'
         )
         .eq('is_ai_card', true)
         .returns<CardTemplateRow[]>();
@@ -326,7 +325,7 @@ export class LitTraderAIEngine {
         const { data: fallback } = await this.supabase
           .from('card_templates')
           .select(
-            'template_id, asset, name, base, base_power, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id'
+            'template_id, asset, name, base, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id'
           )
           .returns<CardTemplateRow[]>();
         templates = fallback ?? [];
@@ -339,7 +338,7 @@ export class LitTraderAIEngine {
 
       // Score templates: BTC strongly preferred, low volatility preferred, defense valued
       const scored = templates.map((t) => {
-        const basePower = t.base_power ?? t.base;
+        const basePower = t.base;
         let score = 0;
 
         // Lit Trader loves BTC — big preference bonus
@@ -406,7 +405,7 @@ export class LitTraderAIEngine {
       const { data: deckCards } = await this.supabase
         .from('bot_cards')
         .select(
-          'id, template_id, template:card_templates(template_id, asset, name, base, base_power, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id)'
+          'id, template_id, template:card_templates(template_id, asset, name, base, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id)'
         )
         .in('id', options);
 
@@ -423,7 +422,6 @@ export class LitTraderAIEngine {
             asset: string;
             name: string;
             base: number;
-            base_power: number | null;
             attack_affinity: number;
             defense_affinity: number;
             charge_affinity: number;
@@ -432,7 +430,7 @@ export class LitTraderAIEngine {
           };
 
           let score = 0;
-          const basePower = t.base_power ?? t.base;
+          const basePower = t.base;
 
           // BTC is always preferred
           if (t.asset === 'BTC') score += 30;

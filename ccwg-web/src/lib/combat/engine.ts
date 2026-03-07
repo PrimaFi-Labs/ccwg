@@ -2,7 +2,6 @@ import type { CardAsset, PlayerAction } from '@/src/types/database';
 
 export interface CardStats {
   base: number;
-  base_power?: number | null;
   attack_affinity: number;
   defense_affinity: number;
   charge_affinity: number;
@@ -64,9 +63,7 @@ export class CombatEngine {
     momentum: number,
     abilityEffects: AbilityEffect[] = []
   ): number {
-    const basePower = Number.isFinite(card.base_power ?? NaN)
-      ? (card.base_power as number)
-      : card.base;
+    const basePower = card.base;
 
     const effectiveMomentum = this.applyAbilityMomentum(
       momentum * card.volatility_sensitivity,
