@@ -41,8 +41,8 @@ export function RoundTimer({ roundEndTimestamp, paused = false, label, onTimeout
   const seconds = Math.floor(timeLeft / 1000);
   const milliseconds = Math.floor((timeLeft % 1000) / 10);
   const percentage = (timeLeft / 60000) * 100;
-  const isUrgent = percentage < 25;
-  const isWarning = percentage < 50;
+  const isUrgent = !paused && percentage < 25;
+  const isWarning = !paused && percentage < 50;
 
   const getBarColor = () => {
     if (isUrgent) return 'from-red-500 to-rose-600';

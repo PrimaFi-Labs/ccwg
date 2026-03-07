@@ -879,10 +879,24 @@ export class MatchOrchestrator {
 
     activeMatch.currentRoundActions.set(player_wallet, action);
 
+    const allActionsSubmitted = activeMatch.currentRoundActions.size === 2;
+
     const opponent = this.getOpponent(player_wallet, activeMatch, match_id);
     if (opponent) {
       const opponentWs = activeMatch.players.get(opponent);
       if (opponentWs) {
+        // If this is the first action, grant the waiting player a fresh timer
+        let yourNewDeadline: number | undefined;
+        if (!allActionsSubmitted && match.mode !== 'VsAI') {
+          yourNewDeadline = Date.now() + ROUND_DURATION_MS;
+          // Reset the server-side round timer to the new deadline
+          if (activeMatch.roundTimer) clearTimeout(activeMatch.roundTimer);
+          activeMatch.roundEndTimestamp = yourNewDeadline;
+          activeMatch.roundTimer = setTimeout(() => {
+            void this.handleRoundTimeout(match_id, round_number);
+          }, ROUND_DURATION_MS);
+          activeMatch.roundTimer.unref?.();
+        }
         this.sendMessage(opponentWs, {
           type: 'opponent_action_locked',
           payload: {
@@ -890,6 +904,7 @@ export class MatchOrchestrator {
             round_number,
             opponent_wallet: player_wallet,
             action,
+            ...(yourNewDeadline !== undefined && { your_new_deadline: yourNewDeadline }),
           },
         });
       }
@@ -906,8 +921,6 @@ export class MatchOrchestrator {
         });
       }
     }
-
-    const allActionsSubmitted = activeMatch.currentRoundActions.size === 2;
 
     if (allActionsSubmitted) {
       await this.resolveRound(match_id, round_number);

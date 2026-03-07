@@ -122,6 +122,7 @@ export interface OpponentActionLockedMessage {
     round_number: number;
     opponent_wallet: string;
     action: PlayerAction; // Core action only (Attack/Defend/Charge)
+    your_new_deadline?: number; // Fresh epoch-ms deadline for the waiting player
   };
 }
 

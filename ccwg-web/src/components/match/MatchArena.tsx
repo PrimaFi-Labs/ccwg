@@ -268,8 +268,11 @@ export function MatchArena({
       ]);
     },
     onOpponentActionLocked: (raw) => {
-      const data = raw as { action: PlayerAction };
+      const data = raw as { action: PlayerAction; your_new_deadline?: number };
       setOpponentAction(data.action);
+      if (data.your_new_deadline) {
+        setRoundEndTimestamp(data.your_new_deadline);
+      }
       const card = opponentCardData?.template?.asset || opponentCard || 'Unknown';
       setActionFeed((prev) => [
         cloakActive
