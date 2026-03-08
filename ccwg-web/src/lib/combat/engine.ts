@@ -6,6 +6,7 @@ export interface CardStats {
   defense_affinity: number;
   charge_affinity: number;
   volatility_sensitivity: number;
+  level?: number;
 }
 
 export interface CombatInput {
@@ -63,7 +64,7 @@ export class CombatEngine {
     momentum: number,
     abilityEffects: AbilityEffect[] = []
   ): number {
-    const basePower = card.base;
+    const basePower = card.base * (1 + ((card.level ?? 1) - 1) * 0.1);
 
     const effectiveMomentum = this.applyAbilityMomentum(
       momentum * card.volatility_sensitivity,

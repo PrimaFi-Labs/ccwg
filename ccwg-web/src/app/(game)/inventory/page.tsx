@@ -5,7 +5,7 @@ import { useAccount } from '@starknet-react/core';
 import { useRouter } from 'next/navigation';
 import { CardDisplay } from '@/src/components/cards/CardDisplay';
 import { ConnectWallet } from '@/src/components/auth/ConnectWallet';
-import { Crown, Swords, Shield, Zap, Layers, Package } from 'lucide-react';
+import { Crown, Swords, Shield, Zap, Layers, Package, GitMerge, X, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { PlayerCard, Rarity } from '@/src/types/database';
 
@@ -70,6 +70,10 @@ export default function InventoryPage() {
   const [rarityFilter, setRarityFilter] = useState<Rarity | 'All'>('All');
   const [flippedCardId, setFlippedCardId] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [mergeMode, setMergeMode] = useState(false);
+  const [mergeTargetId, setMergeTargetId] = useState<number | null>(null);
+  const [merging, setMerging] = useState(false);
+  const [mergeError, setMergeError] = useState<string | null>(null);
 
   // Detect below-xl viewport for mobile card flip behaviour
   useEffect(() => {
@@ -121,6 +125,57 @@ export default function InventoryPage() {
   const rarityStyle = selectedCard?.template?.rarity
     ? RARITY_STYLES[selectedCard.template.rarity]
     : null;
+
+  const mergeCandidates = useMemo(
+    () => selectedCard
+      ? cards.filter((c) => c.template_id === selectedCard.template_id && c.id !== selectedCard.id)
+      : [],
+    [cards, selectedCard]
+  );
+
+  const templateCounts = useMemo(() => {
+    const counts: Record<number, number> = {};
+    for (const c of cards) {
+      counts[c.template_id] = (counts[c.template_id] ?? 0) + 1;
+    }
+    return counts;
+  }, [cards]);
+
+  const handleMerge = async () => {
+    if (!selectedCard || !mergeTargetId) return;
+    setMerging(true);
+    setMergeError(null);
+    try {
+      const res = await fetch(`/api/cards/${selectedCard.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ merge_with_card_id: mergeTargetId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMergeError(data.error ?? 'Merge failed');
+        return;
+      }
+      setCards((prev) =>
+        prev
+          .filter((c) => c.id !== mergeTargetId)
+          .map((c) => (c.id === selectedCard.id ? (data.card as PlayerCard) : c))
+      );
+      setMergeMode(false);
+      setMergeTargetId(null);
+    } catch {
+      setMergeError('Merge failed. Please try again.');
+    } finally {
+      setMerging(false);
+    }
+  };
+
+  // Reset merge mode when selected card changes
+  useEffect(() => {
+    setMergeMode(false);
+    setMergeTargetId(null);
+    setMergeError(null);
+  }, [selectedCardId]);
 
   if (!isConnected) {
     return (
@@ -275,7 +330,7 @@ export default function InventoryPage() {
                           }}
                         >
                           {/* Front face */}
-                          <div style={{ backfaceVisibility: 'hidden' }}>
+                          <div className="relative" style={{ backfaceVisibility: 'hidden' }}>
                             <CardDisplay
                               card={card}
                               size="medium"
@@ -283,6 +338,19 @@ export default function InventoryPage() {
                               selected={selectedCardId === card.id}
                               onClick={() => handleCardClick(card.id)}
                             />
+                            {(templateCounts[card.template_id] ?? 1) > 1 && (
+                              <div
+                                className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[9px] font-display font-bold z-10 pointer-events-none"
+                                style={{
+                                  background: 'rgba(0,0,0,0.72)',
+                                  border: '1px solid var(--border-accent)',
+                                  color: 'var(--accent-primary)',
+                                  backdropFilter: 'blur(4px)',
+                                }}
+                              >
+                                ×{templateCounts[card.template_id]}
+                              </div>
+                            )}
                           </div>
                           {/* Back face — card stats (mobile only) */}
                           <div
@@ -447,6 +515,76 @@ export default function InventoryPage() {
                         <p className="font-display text-lg font-bold text-[var(--text-primary)]">{selectedCard.merge_count}</p>
                       </div>
                     </div>
+
+                    {/* Merge section */}
+                    {(selectedCard.level ?? 1) < 5 && mergeCandidates.length > 0 && (
+                      <>
+                        <div className="h-px" style={{ background: 'var(--border-base)' }} />
+                        {!mergeMode ? (
+                          <button
+                            onClick={() => setMergeMode(true)}
+                            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-display font-bold tracking-wide transition-all hover:opacity-80"
+                            style={{
+                              background: 'var(--bg-secondary)',
+                              border: '1px solid var(--border-base)',
+                              color: 'var(--accent-primary)',
+                            }}
+                          >
+                            <GitMerge className="w-4 h-4" />
+                            Merge · Lv{selectedCard.level ?? 1} → {(selectedCard.level ?? 1) + 1}
+                          </button>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <p className="text-[10px] font-tactical tracking-[0.25em] text-[var(--text-muted)] uppercase">
+                                Select Sacrifice
+                              </p>
+                              <button
+                                onClick={() => { setMergeMode(false); setMergeTargetId(null); setMergeError(null); }}
+                                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                              {mergeCandidates.map((c) => (
+                                <button
+                                  key={c.id}
+                                  onClick={() => setMergeTargetId(c.id)}
+                                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all"
+                                  style={{
+                                    background: mergeTargetId === c.id ? 'rgba(239,68,68,0.15)' : 'var(--bg-secondary)',
+                                    border: `1px solid ${mergeTargetId === c.id ? 'rgba(239,68,68,0.4)' : 'var(--border-base)'}`,
+                                  }}
+                                >
+                                  <span className="flex-1 text-xs font-semibold text-[var(--text-secondary)] truncate">
+                                    {c.template?.name}
+                                  </span>
+                                  <span className="text-[10px] text-[var(--text-muted)]">Lv.{c.level ?? 1}</span>
+                                </button>
+                              ))}
+                            </div>
+                            {mergeError && (
+                              <p className="text-[11px] text-[#f87171] flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3 shrink-0" /> {mergeError}
+                              </p>
+                            )}
+                            <button
+                              onClick={handleMerge}
+                              disabled={!mergeTargetId || merging}
+                              className="w-full py-2.5 rounded-xl text-sm font-display font-bold tracking-wide transition-all disabled:opacity-40"
+                              style={{
+                                background: mergeTargetId ? 'rgba(239,68,68,0.2)' : 'var(--bg-tertiary)',
+                                border: `1px solid ${mergeTargetId ? 'rgba(239,68,68,0.5)' : 'var(--border-base)'}`,
+                                color: mergeTargetId ? '#f87171' : 'var(--text-muted)',
+                              }}
+                            >
+                              {merging ? 'Merging…' : 'Confirm — Card Destroyed'}
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </motion.div>
                 ) : (
                   <motion.div

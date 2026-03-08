@@ -1685,20 +1685,20 @@ export class MatchOrchestrator {
       ? await this.supabase
           .from('player_cards')
           .select(
-            'id, owner_wallet, template:card_templates(template_id, asset, base, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id)'
+            'id, level, owner_wallet, template:card_templates(template_id, asset, base, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id)'
           )
           .in('id', playerCardIds)
-          .returns<{ id: number; owner_wallet: string; template: TemplateStats | null }[]>()
+          .returns<{ id: number; level: number; owner_wallet: string; template: TemplateStats | null }[]>()
       : { data: [] };
 
     const { data: botCards } = botCardIds.length
       ? await this.supabase
           .from('bot_cards')
           .select(
-            'id, template:card_templates(template_id, asset, base, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id)'
+            'id, level, template:card_templates(template_id, asset, base, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id)'
           )
           .in('id', botCardIds)
-          .returns<{ id: number; template: TemplateStats | null }[]>()
+          .returns<{ id: number; level: number; template: TemplateStats | null }[]>()
       : { data: [] };
 
     const p1Card = p1Action.card_id
@@ -1780,8 +1780,8 @@ export class MatchOrchestrator {
         : { self: [], opponent: [] };
 
     const result = this.combatEngine.resolveCombat({
-      playerCard: p1Card.template,
-      opponentCard: p2Card.template,
+      playerCard: { ...p1Card.template, level: p1Card.level ?? 1 },
+      opponentCard: { ...p2Card.template, level: p2Card.level ?? 1 },
       playerAction: p1Action.action as PlayerAction,
       opponentAction: p2Action.action as PlayerAction,
       playerMomentum: p1Momentum,
