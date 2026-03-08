@@ -354,6 +354,25 @@ export default function InventoryPage() {
                                 ×{templateCounts[card.template_id]}
                               </div>
                             )}
+                            {(templateCounts[card.template_id] ?? 1) > 1 && (card.level ?? 1) < 5 && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedCardId(card.id);
+                                  setMergeModalOpen(true);
+                                }}
+                                className="absolute bottom-2 right-2 z-10 flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-display font-bold transition-all hover:opacity-90 active:scale-95"
+                                style={{
+                                  background: 'rgba(0,0,0,0.72)',
+                                  border: '1px solid var(--accent-primary)',
+                                  color: 'var(--accent-primary)',
+                                  backdropFilter: 'blur(4px)',
+                                }}
+                              >
+                                <GitMerge className="w-2.5 h-2.5" />
+                                Merge
+                              </button>
+                            )}
                           </div>
                           {/* Back face — card stats (mobile only) */}
                           <div
@@ -490,15 +509,28 @@ export default function InventoryPage() {
 
                     {/* Stat bars */}
                     <div className="space-y-3.5">
-                      {STAT_BARS.map(({ key, label, icon, color }) => (
-                        <StatBar
-                          key={key}
-                          label={label}
-                          icon={icon}
-                          value={(selectedCard.template as unknown as Record<string, number>)[key] ?? 0}
-                          color={color}
-                        />
-                      ))}
+                      {STAT_BARS.map(({ key, label, icon, color }) => {
+                        const raw = (selectedCard.template as unknown as Record<string, number>)[key] ?? 0;
+                        const level = selectedCard.level ?? 1;
+                        const effective = key === 'base' && level > 1
+                          ? Math.round(raw * (1 + (level - 1) * 0.1))
+                          : raw;
+                        return (
+                          <div key={key}>
+                            <StatBar
+                              label={label}
+                              icon={icon}
+                              value={effective}
+                              color={color}
+                            />
+                            {key === 'base' && level > 1 && (
+                              <p className="text-[9px] text-right mt-0.5" style={{ color: '#f59e0b' }}>
+                                base {raw} +{Math.round((level - 1) * 10)}% level bonus
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
 
                     {/* Divider */}
