@@ -68,7 +68,9 @@ export function CardDisplay({
 
   const attackAffinity = template.attack_affinity ?? 0;
   const defenseAffinity = template.defense_affinity ?? 0;
-  const baseStat = template.base ?? 0;
+  const rawBase = template.base ?? 0;
+  const level = card.level ?? 1;
+  const baseStat = level > 1 ? Math.round(rawBase * (1 + (level - 1) * 0.1)) : rawBase;
   const chargeAffinity = template.charge_affinity ?? 0;
 
   const rarityColors: Record<string, string> = {
