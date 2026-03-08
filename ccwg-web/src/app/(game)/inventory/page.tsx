@@ -71,6 +71,7 @@ export default function InventoryPage() {
   const [flippedCardId, setFlippedCardId] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [mergeMode, setMergeMode] = useState(false);
+  const [mergeModalOpen, setMergeModalOpen] = useState(false);
   const [mergeTargetId, setMergeTargetId] = useState<number | null>(null);
   const [merging, setMerging] = useState(false);
   const [mergeError, setMergeError] = useState<string | null>(null);
@@ -162,6 +163,7 @@ export default function InventoryPage() {
           .map((c) => (c.id === selectedCard.id ? (data.card as PlayerCard) : c))
       );
       setMergeMode(false);
+      setMergeModalOpen(false);
       setMergeTargetId(null);
     } catch {
       setMergeError('Merge failed. Please try again.');
@@ -173,6 +175,7 @@ export default function InventoryPage() {
   // Reset merge mode when selected card changes
   useEffect(() => {
     setMergeMode(false);
+    setMergeModalOpen(false);
     setMergeTargetId(null);
     setMergeError(null);
   }, [selectedCardId]);
@@ -399,7 +402,25 @@ export default function InventoryPage() {
                                   <span className="text-[10px] text-[var(--text-muted)]">Lv.{card.level}</span>
                                   <span className="text-[10px] text-[var(--text-muted)]">{card.merge_count} merges</span>
                                 </div>
-                                <p className="text-[9px] text-[var(--text-muted)] text-center mt-1.5 opacity-50">Tap to flip back</p>
+                                {(templateCounts[card.template_id] ?? 1) > 1 && (card.level ?? 1) < 5 && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedCardId(card.id);
+                                      setMergeModalOpen(true);
+                                    }}
+                                    className="mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-display font-bold tracking-wide transition-all hover:opacity-80"
+                                    style={{
+                                      background: 'rgba(0,0,0,0.4)',
+                                      border: '1px solid var(--accent-primary)',
+                                      color: 'var(--accent-primary)',
+                                    }}
+                                  >
+                                    <GitMerge className="w-3 h-3" />
+                                    Merge · Lv{card.level ?? 1} → {(card.level ?? 1) + 1}
+                                  </button>
+                                )}
+                                <p className="text-[9px] text-[var(--text-muted)] text-center mt-1.5 opacity-50">Tap card to flip back</p>
                               </div>
                             </div>
                           </div>
@@ -602,6 +623,98 @@ export default function InventoryPage() {
           </div>
         )}
       </div>
+
+      {/* ─── Merge Modal (mobile & desktop fallback) ─── */}
+      <AnimatePresence>
+        {mergeModalOpen && selectedCard && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+            onClick={() => { setMergeModalOpen(false); setMergeTargetId(null); setMergeError(null); }}
+          >
+            <motion.div
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="w-full max-w-sm rounded-2xl overflow-hidden"
+              style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-accent)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'var(--border-base)' }}>
+                <div className="flex items-center gap-2">
+                  <GitMerge className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
+                  <div>
+                    <p className="text-sm font-display font-bold text-[var(--text-primary)]">
+                      Merge {selectedCard.template?.name}
+                    </p>
+                    <p className="text-[10px] text-[var(--text-muted)]">
+                      Lv.{selectedCard.level ?? 1} → Lv.{(selectedCard.level ?? 1) + 1} · +10% base power
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setMergeModalOpen(false); setMergeTargetId(null); setMergeError(null); }}
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Sacrifice picker */}
+              <div className="p-4 space-y-3">
+                <p className="text-[10px] font-tactical tracking-[0.25em] text-[var(--text-muted)] uppercase">
+                  Select card to sacrifice
+                </p>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {mergeCandidates.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => setMergeTargetId(c.id)}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all"
+                      style={{
+                        background: mergeTargetId === c.id ? 'rgba(239,68,68,0.15)' : 'var(--bg-secondary)',
+                        border: `1px solid ${mergeTargetId === c.id ? 'rgba(239,68,68,0.45)' : 'var(--border-base)'}`,
+                      }}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{c.template?.name}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">Lv.{c.level ?? 1} · {c.merge_count ?? 0} merges</p>
+                      </div>
+                      {mergeTargetId === c.id && (
+                        <span className="text-[10px] font-bold text-[#f87171] shrink-0">Sacrifice</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {mergeError && (
+                  <p className="text-[11px] text-[#f87171] flex items-center gap-1.5">
+                    <AlertTriangle className="w-3 h-3 shrink-0" /> {mergeError}
+                  </p>
+                )}
+
+                <button
+                  onClick={handleMerge}
+                  disabled={!mergeTargetId || merging}
+                  className="w-full py-3 rounded-xl text-sm font-display font-bold tracking-wide transition-all disabled:opacity-40"
+                  style={{
+                    background: mergeTargetId ? 'rgba(239,68,68,0.18)' : 'var(--bg-tertiary)',
+                    border: `1px solid ${mergeTargetId ? 'rgba(239,68,68,0.5)' : 'var(--border-base)'}`,
+                    color: mergeTargetId ? '#f87171' : 'var(--text-muted)',
+                  }}
+                >
+                  {merging ? 'Merging…' : 'Confirm — Card Permanently Destroyed'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

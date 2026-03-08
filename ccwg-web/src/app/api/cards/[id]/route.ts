@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/src/lib/supabase/server';
+import { createClient, createServiceClient } from '@/src/lib/supabase/server';
 import { requireSessionWallet } from '@/src/lib/auth/guards';
 
 // Get specific card
@@ -46,7 +46,7 @@ export async function PATCH(
     const cardId = Number.parseInt(id, 10);
     const { merge_with_card_id } = await request.json();
 
-    const supabase = await createClient();
+    const supabase = createServiceClient();
     const session = requireSessionWallet(request);
     if ('response' in session) return session.response;
     const wallet = session.wallet;
