@@ -38,11 +38,5 @@ export const validateFingerprint = (
   const currentFingerprint = generateFingerprint(request);
   const matches = currentFingerprint === storedFingerprint;
   
-  console.log('[Fingerprint] Validation:', {
-    matches,
-    stored: storedFingerprint.substring(0, 10) + '...',
-    current: currentFingerprint.substring(0, 10) + '...',
-  });
-  
   return matches;
 };

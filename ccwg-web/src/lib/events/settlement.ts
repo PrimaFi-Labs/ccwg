@@ -2,7 +2,7 @@
  * Shared event settlement logic.
  *
  * Called by:
- *   1. Admin manual "Complete" button (POST /api/admin/events/:id/complete)
+ *   1. Admin manual "Complete" button (POST /api/control/events/:id/complete)
  *   2. Auto-settlement in the maintenance cron when ends_at has passed
  */
 

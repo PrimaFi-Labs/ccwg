@@ -6,12 +6,12 @@ import { LandingFooter } from '@/src/components/navigation/LandingFooter';
 
 /**
  * Wraps marketing pages with LandingNav + LandingFooter.
- * Pages under /admin are excluded — admin uses its own shell
+ * Pages under /control are excluded — control panel uses its own shell
  * via the GameHeader visible through the connected wallet flow.
  */
 export function MarketingShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAdmin = pathname.startsWith('/admin');
+  const isAdmin = pathname.startsWith('/control');
 
   if (isAdmin) {
     // Admin pages get a bare background — no landing nav

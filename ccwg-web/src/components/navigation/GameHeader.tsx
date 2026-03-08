@@ -80,7 +80,7 @@ export function GameHeader() {
   // Fetch admin status
   useEffect(() => {
     if (!isConnected) return;
-    fetch('/api/admin/me')
+    fetch('/api/control/me')
       .then((r) => r.ok ? r.json() : null)
       .then((d) => setIsAdmin(Boolean(d?.isAdmin)))
       .catch(() => { /* silent */ });
@@ -152,11 +152,11 @@ export function GameHeader() {
             ))}
             {isAdmin && (
               <Link
-                href="/admin"
+                href="/control"
                 className={`
                   relative px-3 py-1.5 text-xs font-tactical font-semibold tracking-widest uppercase
                   transition-colors duration-200
-                  ${isActive('/admin')
+                  ${isActive('/control')
                     ? 'nav-item-active'
                     : 'text-[var(--accent-red)] hover:text-[var(--text-primary)]'
                   }
@@ -292,7 +292,7 @@ export function GameHeader() {
                       </Link>
                       {isAdmin && (
                         <Link
-                          href="/admin"
+                          href="/control"
                           onClick={() => setProfileOpen(false)}
                           className="flex items-center gap-2.5 px-3 py-2 text-xs text-[var(--accent-red)] hover:bg-[var(--bg-tertiary)] transition-colors lg:hidden"
                         >

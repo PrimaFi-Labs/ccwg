@@ -44,7 +44,7 @@ export function MainNav() {
     let isActive = true;
     const checkAdmin = async () => {
       try {
-        const res = await fetch('/api/admin/me', { cache: 'no-store' });
+        const res = await fetch('/api/control/me', { cache: 'no-store' });
         if (!res.ok) {
           if (isActive) setIsAdmin(false);
           return;
@@ -154,11 +154,11 @@ export function MainNav() {
             {/* Admin link for admins only */}
             {isConnected && isAdmin && (
               <Link
-                href="/admin"
+                href="/control"
                 className={`
                   flex items-center gap-2 px-4 py-2 rounded-lg transition-all
                   ${
-                    isActive('/admin')
+                    isActive('/control')
                       ? 'bg-purple-600 text-white'
                       : 'text-gray-400 hover:text-white hover:bg-gray-800'
                   }
@@ -228,12 +228,12 @@ export function MainNav() {
 
               {isConnected && isAdmin && (
                 <Link
-                  href="/admin"
+                  href="/control"
                   onClick={() => setMobileMenuOpen(false)}
                   className={`
                       flex items-center gap-3 px-4 py-3 rounded-lg transition-all
                       ${
-                        isActive('/admin')
+                        isActive('/control')
                           ? 'bg-purple-600 text-white'
                           : 'text-gray-400 hover:text-white hover:bg-gray-800'
                       }

@@ -66,9 +66,14 @@ ccwg-server/.env.*
 # shared package build output
 packages/shared/dist/
 
-# Database impt files
-ccwg-web/supabase/*.temp
-ccwg-web/*supabase
+# Database — migrations expose full schema and RLS policies
+ccwg-web/supabase/
+
+# contracts local dev infra (not needed by contributors)
+contracts/compose.yaml
+contracts/Dockerfile
+contracts/torii_dev.toml
+contracts/pnpm-lock.yaml
 
 # Convo files
 progress.md

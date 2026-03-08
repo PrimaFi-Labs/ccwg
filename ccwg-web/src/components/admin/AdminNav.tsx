@@ -8,17 +8,17 @@ import { Settings, CreditCard, Sparkles, Calendar, ShoppingCart, FileText, UserC
 import { useEffect, useMemo, useState } from 'react';
 
 const navItems = [
-  { href: '/admin', label: 'Overview', icon: Settings, roles: ['SuperAdmin', 'Moderator', 'Analyst'] },
-  { href: '/admin/cards', label: 'Card Templates', icon: CreditCard, roles: ['SuperAdmin', 'Moderator'] },
-  { href: '/admin/abilities', label: 'Abilities', icon: Sparkles, roles: ['SuperAdmin', 'Moderator'] },
-  { href: '/admin/market', label: 'Market Items', icon: ShoppingCart, roles: ['SuperAdmin'] },
-  { href: '/admin/events', label: 'Events', icon: Calendar, roles: ['SuperAdmin', 'Moderator'] },
-  { href: '/admin/reports', label: 'Reports', icon: AlertTriangle, roles: ['SuperAdmin', 'Moderator', 'Analyst'] },
-  { href: '/admin/disputes', label: 'Disputes', icon: AlertTriangle, roles: ['SuperAdmin', 'Moderator', 'Analyst'] },
-  { href: '/admin/sanctions', label: 'Sanctions', icon: Shield, roles: ['SuperAdmin', 'Moderator', 'Analyst'] },
-  { href: '/admin/announcements', label: 'Announcements', icon: Megaphone, roles: ['SuperAdmin', 'Moderator'] },
-  { href: '/admin/audit', label: 'Audit Logs', icon: FileText, roles: ['SuperAdmin', 'Moderator', 'Analyst'] },
-  { href: '/admin/admins', label: 'Admins', icon: UserCog, roles: ['SuperAdmin'] },
+  { href: '/control', label: 'Overview', icon: Settings, roles: ['SuperAdmin', 'Moderator', 'Analyst'] },
+  { href: '/control/cards', label: 'Card Templates', icon: CreditCard, roles: ['SuperAdmin', 'Moderator'] },
+  { href: '/control/abilities', label: 'Abilities', icon: Sparkles, roles: ['SuperAdmin', 'Moderator'] },
+  { href: '/control/market', label: 'Market Items', icon: ShoppingCart, roles: ['SuperAdmin'] },
+  { href: '/control/events', label: 'Events', icon: Calendar, roles: ['SuperAdmin', 'Moderator'] },
+  { href: '/control/reports', label: 'Reports', icon: AlertTriangle, roles: ['SuperAdmin', 'Moderator', 'Analyst'] },
+  { href: '/control/disputes', label: 'Disputes', icon: AlertTriangle, roles: ['SuperAdmin', 'Moderator', 'Analyst'] },
+  { href: '/control/sanctions', label: 'Sanctions', icon: Shield, roles: ['SuperAdmin', 'Moderator', 'Analyst'] },
+  { href: '/control/announcements', label: 'Announcements', icon: Megaphone, roles: ['SuperAdmin', 'Moderator'] },
+  { href: '/control/audit', label: 'Audit Logs', icon: FileText, roles: ['SuperAdmin', 'Moderator', 'Analyst'] },
+  { href: '/control/admins', label: 'Admins', icon: UserCog, roles: ['SuperAdmin'] },
 ];
 
 export function AdminNav() {
@@ -29,7 +29,7 @@ export function AdminNav() {
     let active = true;
     const fetchRole = async () => {
       try {
-        const res = await fetch('/api/admin/me', { cache: 'no-store' });
+        const res = await fetch('/api/control/me', { cache: 'no-store' });
         const data = await res.json();
         if (active) setRole(data.role || null);
       } catch {

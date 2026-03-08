@@ -50,7 +50,7 @@ export function CardTemplateForm({ onSubmit, onCancel, initialData }: CardTempla
   useEffect(() => {
     const loadAbilities = async () => {
       try {
-        const res = await fetch('/api/admin/abilities', { cache: 'no-store' });
+        const res = await fetch('/api/control/abilities', { cache: 'no-store' });
         const data = await res.json();
         if (res.ok) {
           setAbilities(data.abilities || []);
@@ -76,7 +76,7 @@ export function CardTemplateForm({ onSubmit, onCancel, initialData }: CardTempla
       formData.append('folder', 'CARDS');
       formData.append('admin_wallet', 'admin_address'); // Get from auth
 
-      const response = await fetch('/api/admin/upload', {
+      const response = await fetch('/api/control/upload', {
         method: 'POST',
         body: formData,
       });

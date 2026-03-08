@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/match/'],
+        disallow: ['/api/', '/match/', '/control', '/control/'],
       },
     ],
     sitemap: 'https://ccwg.primafi.xyz/sitemap.xml',

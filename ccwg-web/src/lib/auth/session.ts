@@ -50,13 +50,6 @@ export const buildAuthTypedData = (params: {
   const { address, nonce, issuedAt } = params;
   const issuedAtHex = num.toHex(issuedAt);
 
-  console.log('[TypedData] Building with values:', {
-    address,
-    nonce: nonce.substring(0, 10) + '...',
-    issuedAt,
-    issuedAtHex,
-  });
-
   // ✅ FIX: Correct structure for Starknet.js v9+ SNIP-12 compliance
   return {
     types: {
@@ -92,13 +85,6 @@ export const createNoncePayload = (address: string, request: NextRequest) => {
   const issuedAt = Math.floor(Date.now() / 1000);
   const fingerprint = generateFingerprint(request);
 
-  console.log('[Nonce] Creating nonce:', {
-    address: address.toLowerCase(),
-    nonce: nonce.substring(0, 10) + '...',
-    issuedAt,
-    fingerprint: fingerprint.substring(0, 10) + '...',
-  });
-
   const nonceData: NonceData = {
     address: address.toLowerCase(),
     nonce,
@@ -108,8 +94,6 @@ export const createNoncePayload = (address: string, request: NextRequest) => {
 
   const cacheKey = `${address.toLowerCase()}:${nonce}`;
   NonceStore.set(cacheKey, nonceData, NONCE_TTL_SECONDS);
-
-  console.log('[Nonce] Stored in cache with key:', cacheKey.substring(0, 60) + '...');
 
   const token = createToken<NonceData>('nonce', nonceData, NONCE_TTL_SECONDS, {
     jti: generateTokenId(),
@@ -125,69 +109,31 @@ export const verifyNonceToken = (
   address: string,
   request: NextRequest
 ): NonceData | null => {
-  console.log('[Nonce] Verifying nonce token for address:', address);
-
   const data = verifyToken<NonceData>(token, 'nonce', {
     gracePeriod: GRACE_PERIOD_SECONDS,
   });
 
-  if (!data) {
-    console.error('[Nonce] Token verification failed - invalid or expired');
-    return null;
-  }
+  if (!data) return null;
 
-  console.log('[Nonce] Token signature valid:', {
-    address: data.address,
-    nonce: data.nonce.substring(0, 10) + '...',
-    issuedAt: data.issuedAt,
-  });
-
-  if (data.address.toLowerCase() !== address.toLowerCase()) {
-    console.error('[Nonce] Address mismatch:', {
-      token_address: data.address,
-      provided_address: address,
-    });
-    return null;
-  }
+  if (data.address.toLowerCase() !== address.toLowerCase()) return null;
 
   const currentFingerprint = generateFingerprint(request);
-  console.log('[Nonce] Fingerprint comparison:', {
-    stored: data.fingerprint.substring(0, 10) + '...',
-    current: currentFingerprint.substring(0, 10) + '...',
-    match: data.fingerprint === currentFingerprint,
-  });
-
   if (data.fingerprint !== currentFingerprint) {
-    console.warn('[Nonce] Fingerprint mismatch');
-    if (process.env.NODE_ENV === 'production') {
-      console.error('[Nonce] Rejecting due to fingerprint mismatch (production)');
-      return null;
-    }
+    if (process.env.NODE_ENV === 'production') return null;
   }
 
   const cacheKey = `${address.toLowerCase()}:${data.nonce}`;
-  console.log('[Nonce] Checking cache for key:', cacheKey.substring(0, 60) + '...');
-
   const cached = NonceStore.get(cacheKey);
   if (!cached) {
-    console.warn('[Nonce] Not found in cache (possible dev HMR/server restart).');
-
-    if (process.env.NODE_ENV === 'production') {
-      return null;
-    }
-
-    console.warn('[Nonce] Dev fallback: accepting nonce token without cache.');
-  } else {
-    console.log('[Nonce] Found in cache, verification successful');
+    if (process.env.NODE_ENV === 'production') return null;
+    console.warn('[Nonce] Dev: cache miss, accepting via token sig.');
   }
 
   return data;
 };
 
 export const consumeNonce = (address: string, nonce: string): void => {
-  const cacheKey = `${address.toLowerCase()}:${nonce}`;
-  console.log('[Nonce] Consuming nonce:', cacheKey.substring(0, 60) + '...');
-  NonceStore.delete(cacheKey);
+  NonceStore.delete(`${address.toLowerCase()}:${nonce}`);
 };
 
 type AccessTokenData = {
@@ -208,8 +154,6 @@ export const createSessionTokens = (
 ) => {
   const refreshTokenId = generateTokenId();
   const now = Math.floor(Date.now() / 1000);
-
-  console.log('[Session] Creating session tokens for:', wallet);
 
   const refreshToken = createToken<RefreshTokenData>(
     'refresh',
@@ -235,8 +179,6 @@ export const createSessionTokens = (
 
   SessionStore.set(wallet, sessionData);
   RefreshTokenStore.allow(refreshTokenId, REFRESH_TTL_SECONDS);
-
-  console.log('[Session] Session tokens created successfully');
   return { accessToken, refreshToken };
 };
 

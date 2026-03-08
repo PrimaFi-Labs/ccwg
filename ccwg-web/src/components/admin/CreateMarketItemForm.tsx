@@ -41,7 +41,7 @@ export function CreateMarketItemForm({ onSuccess, cardTemplates }: CreateMarketI
       const fd = new FormData();
       fd.append('file', file);
       fd.append('folder', 'MARKET');
-      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      const res = await fetch('/api/control/upload', { method: 'POST', body: fd });
       const data = await res.json();
       if (res.ok && data.publicId) {
         setImagePublicId(data.publicId);
