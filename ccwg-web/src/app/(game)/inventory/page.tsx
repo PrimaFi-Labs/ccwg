@@ -403,15 +403,22 @@ export default function InventoryPage() {
                                 </div>
                               </div>
                               <div className="space-y-2 flex-1">
-                                {STAT_BARS.map(({ key, label, icon, color }) => (
-                                  <StatBar
-                                    key={key}
-                                    label={label}
-                                    icon={icon}
-                                    value={(card.template as unknown as Record<string, number>)?.[key] ?? 0}
-                                    color={color}
-                                  />
-                                ))}
+                                {STAT_BARS.map(({ key, label, icon, color }) => {
+                                  const raw = (card.template as unknown as Record<string, number>)?.[key] ?? 0;
+                                  const lvl = card.level ?? 1;
+                                  const effective = key === 'base' && lvl > 1
+                                    ? Math.round(raw * (1 + (lvl - 1) * 0.1))
+                                    : raw;
+                                  return (
+                                    <StatBar
+                                      key={key}
+                                      label={key === 'base' && lvl > 1 ? `Base (+${(lvl - 1) * 10}%)` : label}
+                                      icon={icon}
+                                      value={effective}
+                                      color={color}
+                                    />
+                                  );
+                                })}
                               </div>
                               <div className="mt-2 pt-2 border-t border-[var(--border-base)]">
                                 <p className="text-[10px] text-[var(--text-secondary)] truncate">

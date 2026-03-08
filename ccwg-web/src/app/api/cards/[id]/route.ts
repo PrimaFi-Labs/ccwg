@@ -70,6 +70,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'Cards not found or not owned' }, { status: 404 });
     }
 
+    // Verify neither card is already burned
+    if (baseCard.owner_wallet === '__burned__' || mergeCard.owner_wallet === '__burned__') {
+      return NextResponse.json({ error: 'Card has already been sacrificed' }, { status: 400 });
+    }
+
     // Verify same template
     if (baseCard.template_id !== mergeCard.template_id) {
       return NextResponse.json({ error: 'Cards must be same type to merge' }, { status: 400 });
@@ -95,7 +100,7 @@ export async function PATCH(
 
     await supabase
       .from('player_cards')
-      .delete()
+      .update({ owner_wallet: '__burned__' })
       .eq('id', merge_with_card_id);
 
     // Fetch updated card
