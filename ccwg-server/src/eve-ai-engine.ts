@@ -1170,7 +1170,7 @@ export class EVEAIEngine {
       const { data: deckCards } = await this.supabase
         .from('bot_cards')
         .select(
-          'id, template_id, template:card_templates(template_id, asset, name, base, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id)'
+          'id, template_id, template:card_templates(template_id, asset, name, rarity, base, attack_affinity, defense_affinity, charge_affinity, volatility_sensitivity, ability_id, image_url)'
         )
         .in('id', options);
 
