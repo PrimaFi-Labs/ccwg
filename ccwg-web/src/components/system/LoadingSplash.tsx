@@ -24,15 +24,16 @@ const TIPS = [
 ];
 
 export function LoadingSplash({ onComplete, minDuration = 3200, dataReady = false }: LoadingSplashProps) {
-  const [tipIndex, setTipIndex] = useState(() => Math.floor(Math.random() * TIPS.length));
+  const [tipIndex, setTipIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [exiting, setExiting] = useState(false);
   const startTime = useRef<number>(0);
   const doneRef = useRef(false);
 
-  // Record start time on mount
+  // Record start time on mount + pick a random tip (client-only to avoid hydration mismatch)
   useEffect(() => {
     startTime.current = Date.now();
+    setTipIndex(Math.floor(Math.random() * TIPS.length));
   }, []);
 
   // Tip rotation

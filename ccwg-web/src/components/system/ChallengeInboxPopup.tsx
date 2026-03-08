@@ -35,7 +35,7 @@ export function ChallengeInboxPopup() {
   const [overview, setOverview] = useState<OverviewPayload | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [dismissedIds, setDismissedIds] = useState<number[]>([]);
-  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [nowMs, setNowMs] = useState(0);
 
   const hiddenByRoute = pathname?.startsWith('/match/') ?? false;
 
@@ -54,6 +54,7 @@ export function ChallengeInboxPopup() {
   useEffect(() => {
     if (!isConnected || !address || hiddenByRoute) return;
     void loadOverview();
+    setNowMs(Date.now());
     const pollId = window.setInterval(() => {
       void loadOverview();
     }, POLL_MS);

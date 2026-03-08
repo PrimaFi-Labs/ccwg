@@ -137,7 +137,7 @@ export function LandingFooter() {
           className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-8"
           style={{ borderTop: '1px solid rgba(6,214,160,0.08)' }}
         >
-          <p className="text-xs" style={{ color: 'rgba(148,163,184,0.5)' }}>
+          <p className="text-xs" style={{ color: 'rgba(148,163,184,0.5)' }} suppressHydrationWarning>
             © {new Date().getFullYear()} CCWG. All rights reserved.
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">

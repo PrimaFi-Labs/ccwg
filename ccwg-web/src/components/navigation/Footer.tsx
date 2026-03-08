@@ -132,7 +132,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center">
-          <p className="text-gray-500 text-sm">
+          <p className="text-gray-500 text-sm" suppressHydrationWarning>
             © {new Date().getFullYear()} CCWG. Built on Starknet. All rights reserved.
           </p>
         </div>

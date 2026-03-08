@@ -76,7 +76,7 @@ export function SocialPanel({ walletAddress }: { walletAddress: string }) {
   const [showDeckSelector, setShowDeckSelector] = useState(false);
   const [feedback, setFeedback] = useState<{ tone: 'error' | 'success' | 'info'; text: string } | null>(null);
   const [waitingChallenge, setWaitingChallenge] = useState<WaitingChallengeState | null>(null);
-  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [nowMs, setNowMs] = useState(0);
   const [blockingMatchId, setBlockingMatchId] = useState<number | null>(null);
   const [quittingMatch, setQuittingMatch] = useState(false);
 
@@ -286,6 +286,7 @@ export function SocialPanel({ walletAddress }: { walletAddress: string }) {
 
   useEffect(() => {
     if (!waitingChallenge) return;
+    setNowMs(Date.now());
     const intervalId = window.setInterval(() => {
       setNowMs(Date.now());
     }, 1000);
